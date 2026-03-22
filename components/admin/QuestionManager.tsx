@@ -39,9 +39,12 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12; 
   
-  // Fungsi Scroll sudah kembali sederhana
+  // Karena sekarang menggunakan Sidebar, kita men-scroll wadah utamanya, BUKAN window.
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const mainContainer = document.getElementById('main-scroll-container');
+    if (mainContainer) {
+      mainContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const subjects = ['Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'Informatika', 'TKA Umum'];
@@ -103,13 +106,15 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const paginatedQuestions = filteredAndSortedQuestions.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="w-full space-y-6 pt-2 pb-24 min-h-[70vh]">
+    // Tidak ada lagi margin atas yang aneh-aneh! Murni bersih.
+    <div className="w-full space-y-8 flex flex-col h-full">
+      
       <SearchAndAddBar 
         onSearch={(q) => setSearchQuery(q)} 
         onAdd={() => { setForm(initialForm); setEditingId(null); setShowForm(true); }}
       />
       
-      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shrink-0">
         <QuestionFilters 
           filterSubject={filterSubject}
           setFilterSubject={setFilterSubject}
@@ -119,7 +124,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
         />
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 flex-1">
         <div className="flex justify-between items-center px-2">
            <div>
               <h3 className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic leading-none">Katalog Bank Soal</h3>
@@ -127,7 +132,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
            </div>
         </div>
 
-        <div className="pt-2">
+        <div className="pt-2 pb-6">
           <QuestionGrid 
             questions={paginatedQuestions}
             groups={groups}
@@ -138,7 +143,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
           />
 
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-3 mt-8 pt-4 pb-8 border-t border-slate-100">
+            <div className="flex justify-center items-center gap-3 mt-8 pt-6 border-t border-slate-100">
               <button 
                 onClick={() => {
                   setCurrentPage(prev => Math.max(1, prev - 1));
