@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Question, User, UserRole } from '../types';
 import QuestionManager from './admin/QuestionManager';
 import SessionManager from './admin/SessionManager';
@@ -63,29 +63,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
   const [userForm, setUserForm] = useState<Partial<User> | null>(null);
 
-  // Referensi dan State untuk Menghitung Tinggi Navbar secara Dinamis
+  // PERBAIKAN: Gunakan default height yang lebih besar (320) agar tidak menabrak saat loading awal
   const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(240);
+  const [headerHeight, setHeaderHeight] = useState(320); 
   const [containerWidth, setContainerWidth] = useState(window.innerWidth);
 
-  // Observer untuk mendeteksi perubahan ukuran header/navbar
-  useEffect(() => {
+  // Menggunakan useLayoutEffect agar pengukuran terjadi SEBELUM browser menggambar (paint)
+  useLayoutEffect(() => {
     if (!headerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        setHeaderHeight(entry.contentRect.height);
+    
+    const updateHeight = () => {
+      if (headerRef.current) {
+        setHeaderHeight(headerRef.current.offsetHeight);
       }
-    });
+    };
+
+    const observer = new ResizeObserver(updateHeight);
     observer.observe(headerRef.current);
+    updateHeight(); // Jalankan sekali di awal
+
+    const handleResize = () => {
+      setContainerWidth(window.innerWidth);
+      updateHeight();
+    };
     
-    const handleResize = () => setContainerWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
-    
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [activeTab]); // Ukur ulang setiap kali tab berubah
 
   const fetchLogs = async () => {
     setIsLoadingLogs(true);
@@ -108,9 +115,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Memaksa scroll ke atas saat ganti tab
+  // PERBAIKAN: Berikan sedikit delay pada scroll agar padding sempat terpasang
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    const timer = setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }, 10);
+    return () => clearTimeout(timer);
   }, [activeTab]);
 
   const handleAddAction = () => {
@@ -128,7 +138,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="w-full min-h-screen bg-slate-50 flex flex-col items-center">
       
-      {/* PERSISTENT FIXED NAVBAR (Original Style) */}
+      {/* PERSISTENT FIXED NAVBAR */}
       <div ref={headerRef} className="fixed top-0 left-0 right-0 z-[150] bg-white shadow-md border-b border-slate-200">
         <div className="w-full">
           <AdminHeader 
@@ -141,7 +151,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             isLoadingLogs={isLoadingLogs} 
           />
           {activeTab !== 'MENU' && (
-            <div className="bg-white pb-2">
+            <div className="bg-white pb-4"> {/* Menambah padding bawah agar AdminTabs tidak mepet */}
               <AdminTabs 
                 activeTab={activeTab} 
                 setActiveTab={setActiveTab} 
@@ -152,10 +162,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* Main Container dengan Padding Dinamis agar tidak tertabrak Navbar */}
+      {/* Main Container: Transition Dihapus agar Padding berubah INSTAN saat tab diklik */}
       <main 
-        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pb-12 transition-all duration-300"
-        style={{ paddingTop: `${headerHeight + 24}px` }} 
+        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pb-12"
+        style={{ paddingTop: `${headerHeight + 10}px` }} 
       >
         <div className="w-full">
           {activeTab === 'MENU' && (
@@ -236,7 +246,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </main>
 
-      {/* Floating Button Refresh sebagai alternatif */}
+      {/* Floating Refresh Button */}
       {activeTab !== 'MENU' && (
         <button
           onClick={onRefresh}
