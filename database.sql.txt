@@ -1,0 +1,18 @@
+
+-- ... (tabel sebelumnya tetap ada)
+
+-- Tabel Baru: Log Waktu Pengerjaan Per Soal
+CREATE TABLE IF NOT EXISTS `question_time_logs` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `group_id` INT NOT NULL,
+    `question_id` INT NOT NULL,
+    `start_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `end_time` TIMESTAMP NULL,
+    `duration_seconds` INT DEFAULT 0,
+    `is_correct` TINYINT(1) DEFAULT 0,
+    `answer_data` TEXT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_user_group` (`user_id`, `group_id`),
+    INDEX `idx_question` (`question_id`)
+);

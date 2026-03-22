@@ -1,0 +1,7 @@
+{
+  "name": "Remix: Remix: TKA SMP N 06 Pekalongan - Portal Try Out 2",
+  "description": "Platform ujian akademik terpadu untuk SMP N 06 Pekalongan dengan fitur manajemen soal berbasis AI, pemantauan nilai guru, dan dashboard admin.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
