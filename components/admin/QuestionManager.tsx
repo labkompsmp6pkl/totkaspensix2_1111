@@ -39,11 +39,12 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12; 
   
-  // Karena sekarang menggunakan Sidebar, kita men-scroll wadah utamanya, BUKAN window.
   const scrollToTop = () => {
     const mainContainer = document.getElementById('main-scroll-container');
     if (mainContainer) {
       mainContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -86,15 +87,17 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
     setShowForm(false); refreshData(); setIsSaving(false);
   };
 
-  // MODIFIKASI: Pencarian mencakup Teks, Mapel, dan Nomor Soal (sort_order/ID)
+  // MODIFIKASI: Pencarian sekarang mendukung Nomor Soal (Sort Order) dan ID
   const filteredAndSortedQuestions = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     
     let result = questions.filter(q => {
       const textMatch = (q.text || "").toLowerCase().includes(query);
       const subjectMatch = (q.subject || "").toLowerCase().includes(query);
-      const orderMatch = String(q.sort_order || "").includes(query);
-      const idMatch = String(q.id || "").includes(query);
+      
+      // Pencarian berdasarkan nomor urut (Nomor Soal) atau ID
+      const orderMatch = q.sort_order ? String(q.sort_order).includes(query) : false;
+      const idMatch = q.id ? String(q.id).includes(query) : false;
 
       return (textMatch || subjectMatch || orderMatch || idMatch) && (filterSubject === 'ALL' || q.subject === filterSubject);
     });
@@ -113,11 +116,10 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const paginatedQuestions = filteredAndSortedQuestions.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    /* PERBAIKAN COLLISION: 
-      1. Menambahkan "scroll-mt-20" agar saat scroll ke elemen ini, browser memberi jarak dari atas.
-      2. Menambahkan "pt-4" sebagai ruang napas agar konten pertama tidak menempel ke navbar.
-    */
-    <div className="w-full space-y-8 flex flex-col h-full scroll-mt-20 pt-4">
+    /* PERBAIKAN: Menambahkan pt-10 (Padding Top) ekstra sebagai buffer keamanan 
+       agar saat Navbar "membengkak/gemuk", searchbar tidak akan tertutup.
+       Juga menambahkan scroll-mt (Scroll Margin Top) agar saat pindah page, posisi berhenti tepat. */
+    <div className="w-full space-y-8 flex flex-col h-full pt-10 sm:pt-14 scroll-mt-24">
       
       <SearchAndAddBar 
         onSearch={(q) => setSearchQuery(q)} 
