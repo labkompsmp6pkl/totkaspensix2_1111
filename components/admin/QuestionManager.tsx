@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Question, QuestionGroup, ScoringMode, User } from '../../types';
 import { ensureArray } from '../../utils';
 import { QuestionController } from '../../controllers/QuestionController';
@@ -40,17 +40,10 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12; // Menampilkan 12 soal per halaman (cocok untuk grid 3 kolom)
   
-  // Ref dan fungsi scroll dengan offset untuk menghindari navbar
-  const topRef = useRef<HTMLDivElement>(null);
-
+  // Solusi Paling Akurat: Karena komponen <main> di AdminDashboard sudah memiliki
+  // padding-top, kita cukup scroll ke absolute nol (0).
   const scrollToTop = () => {
-    if (topRef.current) {
-      // Offset 260px (bisa diubah sesuai tinggi total navbar + tab admin Anda)
-      const offset = 260; 
-      const topPosition = topRef.current.getBoundingClientRect().top + window.scrollY - offset;
-      
-      window.scrollTo({ top: topPosition, behavior: 'smooth' });
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const subjects = ['Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'Informatika', 'TKA Umum'];
@@ -114,8 +107,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const paginatedQuestions = filteredAndSortedQuestions.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    // Tambahkan ref={topRef} dan sedikit padding-top (pt-4)
-    <div ref={topRef} className="w-full space-y-6 pt-4 pb-24 min-h-[70vh]">
+    <div className="w-full space-y-6 pt-2 pb-24 min-h-[70vh]">
       {/* Search & Add Bar Section */}
       <SearchAndAddBar 
         onSearch={(q) => setSearchQuery(q)} 
@@ -143,7 +135,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
         </div>
 
         <div className="pt-2">
-          {/* Kirim paginatedQuestions ke QuestionGrid, BUKAN keseluruhan array */}
+          {/* Kirim paginatedQuestions ke QuestionGrid */}
           <QuestionGrid 
             questions={paginatedQuestions}
             groups={groups}
