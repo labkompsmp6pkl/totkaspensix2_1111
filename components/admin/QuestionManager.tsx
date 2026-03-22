@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Question, QuestionGroup, ScoringMode, User } from '../../types';
 import { ensureArray } from '../../utils';
 import { QuestionController } from '../../controllers/QuestionController';
@@ -36,6 +35,10 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState('ALL');
   const [sortType, setSortType] = useState<'ID' | 'ORDER'>('ID');
+  
+  // State untuk Paginasi
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12; // Menampilkan 12 soal per halaman (cocok untuk grid 3 kolom)
   
   const subjects = ['Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'Informatika', 'TKA Umum'];
 
@@ -87,6 +90,16 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
     return result;
   }, [questions, searchQuery, filterSubject, sortType]);
 
+  // Reset Paginasi ke halaman 1 ketika melakukan pencarian atau mengubah filter
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterSubject, sortType]);
+
+  // Kalkulasi data Paginasi
+  const totalPages = Math.ceil(filteredAndSortedQuestions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedQuestions = filteredAndSortedQuestions.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <div className="w-full space-y-6 pb-24 min-h-[70vh]">
       {/* Search & Add Bar Section */}
@@ -116,14 +129,46 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
         </div>
 
         <div className="pt-2">
+          {/* Kirim paginatedQuestions ke QuestionGrid, BUKAN keseluruhan array */}
           <QuestionGrid 
-            questions={filteredAndSortedQuestions}
+            questions={paginatedQuestions}
             groups={groups}
             groupPointsMap={groupPointsMap}
             onPreview={setPreviewQuestion}
             onEdit={handleEdit}
             onDelete={setDeleteConfirmId}
           />
+
+          {/* Navigasi Paginasi */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-3 mt-8 pt-4 pb-8 border-t border-slate-100">
+              <button 
+                onClick={() => {
+                  setCurrentPage(prev => Math.max(1, prev - 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' }); // Opsional: Gulir ke atas saat ganti page
+                }}
+                disabled={currentPage === 1}
+                className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2"
+              >
+                <span>&larr;</span> Sebelumnya
+              </button>
+              
+              <div className="px-4 py-2 bg-indigo-50/50 rounded-xl text-xs font-bold text-indigo-600 border border-indigo-100/50 shadow-sm">
+                Halaman {currentPage} dari {totalPages}
+              </div>
+              
+              <button 
+                onClick={() => {
+                  setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                disabled={currentPage === totalPages}
+                className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2"
+              >
+                Selanjutnya <span>&rarr;</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -135,6 +180,5 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
     </div>
   );
 };
-
 
 export default QuestionManager;
