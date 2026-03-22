@@ -36,12 +36,10 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const [filterSubject, setFilterSubject] = useState('ALL');
   const [sortType, setSortType] = useState<'ID' | 'ORDER'>('ID');
   
-  // State untuk Paginasi
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12; 
   
-  // Karena AdminDashboard kini mengurus padding dinamisnya, kita cukup
-  // scroll ke absolute nol (0), dan layout akan otomatis pas!
+  // Fungsi Scroll sudah kembali sederhana
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
