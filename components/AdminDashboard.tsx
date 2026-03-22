@@ -35,6 +35,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   groups: realGroups, activeGroupId, examCode, setExamCode, lastSync, onRefresh, onLogout,
   activeTab, setActiveTab
 }) => {
+  // Use dummy data if real data is empty for demonstration
   const questions = realQuestions.length > 0 ? realQuestions : dummyQuestions;
   const groups = realGroups.length > 0 ? realGroups : dummyGroups;
   const users = realUsers.length > 0 ? realUsers : [...realUsers, ...dummyUsers];
@@ -66,25 +67,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // User Manager State
   const [userForm, setUserForm] = useState<Partial<User> | null>(null);
 
-  // Layout & Resizing State
+  // Deteksi Lebar Kontainer
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
-
-  // SOLUSI: Mengukur Tinggi Navbar Secara Otomatis
-  const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(240);
-
-  useEffect(() => {
-    if (!headerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        setHeaderHeight(entry.contentRect.height);
-      }
-    });
-    observer.observe(headerRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -127,6 +113,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  // Scroll to top when tab changes
   useEffect(() => {
     const forceScroll = () => {
       window.scrollTo({ top: 0, behavior: 'instant' });
@@ -135,7 +122,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     forceScroll();
-
     const timer = setTimeout(forceScroll, 50);
     const timer2 = setTimeout(forceScroll, 300);
 
@@ -175,9 +161,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div ref={containerRef} className="w-full min-h-screen bg-slate-50 flex flex-col items-center">
-      {/* PERSISTENT FIXED HEADER & TABS */}
-      {/* Diberikan referensi (ref) ke div header ini untuk diukur tingginya */}
-      <div ref={headerRef} className="fixed top-0 left-0 right-0 z-[150] bg-white shadow-md border-b border-slate-200">
+      
+      {/* PERUBAHAN UTAMA: 
+        Mengganti "fixed top-0" menjadi "sticky top-0 w-full". 
+        Sticky akan menahan Navbar di atas layar, TAPI secara alami mengambil ruang bloknya.
+        Ini memastikan komponen apapun di bawahnya (seperti Halaman 1 Soal) TIDAK AKAN PERNAH terselip ke bawah navbar. 
+      */}
+      <div className="sticky top-0 z-[150] w-full bg-white shadow-md border-b border-slate-200">
         <div className="w-full">
           <AdminHeader 
             activeTab={activeTab} 
@@ -200,11 +190,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* Main Container dengan Padding Dinamis. Tidak lagi menggunakan class pt-[240px] yang statis! */}
-      <main 
-        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pb-8 transition-all duration-300"
-        style={{ paddingTop: `${headerHeight + 24}px` }} 
-      >
+      {/* PERUBAHAN KEDUA: 
+        Karena kita pakai 'sticky' di atas, kita hapus padding raksasa (pt-[240px]).
+        Cukup berikan padding wajar seperti "py-6" (atas-bawah 1.5rem). Konten akan otomatis berbaris rapi tepat di bawah Navbar!
+      */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
         <div className="w-full">
           {activeTab === 'MENU' && (
             <AdminMenu setActiveTab={setActiveTab} />
@@ -284,15 +274,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </main>
 
+      {/* Floating Scroll to Top Button */}
       {activeTab !== 'MENU' && showScrollTop && (
         <button
-          onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           className="fixed bottom-6 right-6 z-[999] p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center"
           title="Scroll ke Atas"
         >
           <RefreshCw className="w-6 h-6 rotate-[-90deg]" />
         </button>
       )}
+
     </div>
   );
 };
