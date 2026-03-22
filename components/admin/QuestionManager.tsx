@@ -38,18 +38,12 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   
   // State untuk Paginasi
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12; // Menampilkan 12 soal per halaman
+  const itemsPerPage = 12; 
   
-  // SOLUSI TERBAIK: Menggunakan scrollIntoView ke elemen Anchor yang 
-  // sudah diberi scroll-margin-top (pelindung dari fixed navbar)
+  // Karena AdminDashboard kini mengurus padding dinamisnya, kita cukup
+  // scroll ke absolute nol (0), dan layout akan otomatis pas!
   const scrollToTop = () => {
-    const element = document.getElementById('question-manager-top');
-    if (element) {
-      // block: 'start' memastikan scroll berhenti sejajar dengan elemen anchor
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const subjects = ['Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'Informatika', 'TKA Umum'];
@@ -102,32 +96,21 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
     return result;
   }, [questions, searchQuery, filterSubject, sortType]);
 
-  // Reset Paginasi ke halaman 1 ketika melakukan pencarian atau mengubah filter
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterSubject, sortType]);
 
-  // Kalkulasi data Paginasi
   const totalPages = Math.ceil(filteredAndSortedQuestions.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedQuestions = filteredAndSortedQuestions.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="w-full space-y-6 pb-24 min-h-[70vh] relative">
-      
-      {/* ANCHOR POINT (TITIK PENDARATAN SCROLL) 
-        Terdapat scroll-mt-[300px] yang akan memaksa layar berhenti 300px di bawah batas atas layar, 
-        sehingga navbar fix tidak akan menutupi komponen di bawahnya. 
-      */}
-      <div id="question-manager-top" className="absolute top-0 left-0 w-full h-1 scroll-mt-[300px] sm:scroll-mt-[320px] pointer-events-none"></div>
-
-      {/* Search & Add Bar Section */}
+    <div className="w-full space-y-6 pt-2 pb-24 min-h-[70vh]">
       <SearchAndAddBar 
         onSearch={(q) => setSearchQuery(q)} 
         onAdd={() => { setForm(initialForm); setEditingId(null); setShowForm(true); }}
       />
       
-      {/* Filters Section */}
       <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
         <QuestionFilters 
           filterSubject={filterSubject}
@@ -138,7 +121,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
         />
       </div>
 
-      {/* Header & Catalog Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center px-2">
            <div>
@@ -148,7 +130,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
         </div>
 
         <div className="pt-2">
-          {/* Kirim paginatedQuestions ke QuestionGrid */}
           <QuestionGrid 
             questions={paginatedQuestions}
             groups={groups}
@@ -158,7 +139,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
             onDelete={setDeleteConfirmId}
           />
 
-          {/* Navigasi Paginasi */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-3 mt-8 pt-4 pb-8 border-t border-slate-100">
               <button 
