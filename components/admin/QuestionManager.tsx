@@ -86,12 +86,19 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
     setShowForm(false); refreshData(); setIsSaving(false);
   };
 
+  // MODIFIKASI: Pencarian mencakup Teks, Mapel, dan Nomor Soal (sort_order/ID)
   const filteredAndSortedQuestions = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    
     let result = questions.filter(q => {
-      const text = (q.text || "").toLowerCase();
-      const query = (searchQuery || "").toLowerCase();
-      return text.includes(query) && (filterSubject === 'ALL' || q.subject === filterSubject);
+      const textMatch = (q.text || "").toLowerCase().includes(query);
+      const subjectMatch = (q.subject || "").toLowerCase().includes(query);
+      const orderMatch = String(q.sort_order || "").includes(query);
+      const idMatch = String(q.id || "").includes(query);
+
+      return (textMatch || subjectMatch || orderMatch || idMatch) && (filterSubject === 'ALL' || q.subject === filterSubject);
     });
+
     if (sortType === 'ID') result.sort((a, b) => Number(b.id) - Number(a.id));
     else result.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0));
     return result;
@@ -106,8 +113,11 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const paginatedQuestions = filteredAndSortedQuestions.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    // Tidak ada lagi margin atas yang aneh-aneh! Murni bersih.
-    <div className="w-full space-y-8 flex flex-col h-full">
+    /* PERBAIKAN COLLISION: 
+      1. Menambahkan "scroll-mt-20" agar saat scroll ke elemen ini, browser memberi jarak dari atas.
+      2. Menambahkan "pt-4" sebagai ruang napas agar konten pertama tidak menempel ke navbar.
+    */
+    <div className="w-full space-y-8 flex flex-col h-full scroll-mt-20 pt-4">
       
       <SearchAndAddBar 
         onSearch={(q) => setSearchQuery(q)} 
