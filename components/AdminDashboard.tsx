@@ -43,7 +43,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [sessionLogs, setSessionLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
-  // States untuk Formulir
+  // States Formulir
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState<string | number | null>(null);
   const subjects = ['Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'Informatika', 'TKA Umum'];
@@ -63,24 +63,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
   const [userForm, setUserForm] = useState<Partial<User> | null>(null);
 
-  // PERBAIKAN: Gunakan default height yang lebih besar (320) agar tidak menabrak saat loading awal
+  // --- LOGIKA ANTI-TABRAKAN NAVBAR ---
   const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(320); 
+  // Mulai dengan estimasi tinggi yang cukup besar agar konten tidak kaget (jumpy)
+  const [headerHeight, setHeaderHeight] = useState(350); 
   const [containerWidth, setContainerWidth] = useState(window.innerWidth);
 
-  // Menggunakan useLayoutEffect agar pengukuran terjadi SEBELUM browser menggambar (paint)
   useLayoutEffect(() => {
     if (!headerRef.current) return;
     
     const updateHeight = () => {
       if (headerRef.current) {
+        // offsetHeight mengambil tinggi fisik elemen termasuk padding & border
         setHeaderHeight(headerRef.current.offsetHeight);
       }
     };
 
     const observer = new ResizeObserver(updateHeight);
     observer.observe(headerRef.current);
-    updateHeight(); // Jalankan sekali di awal
+    updateHeight();
 
     const handleResize = () => {
       setContainerWidth(window.innerWidth);
@@ -92,7 +93,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       observer.disconnect();
       window.removeEventListener('resize', handleResize);
     };
-  }, [activeTab]); // Ukur ulang setiap kali tab berubah
+  }, [activeTab]);
 
   const fetchLogs = async () => {
     setIsLoadingLogs(true);
@@ -115,11 +116,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // PERBAIKAN: Berikan sedikit delay pada scroll agar padding sempat terpasang
   useEffect(() => {
     const timer = setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });
-    }, 10);
+    }, 50); // Delay sedikit lebih lama agar DOM stabil
     return () => clearTimeout(timer);
   }, [activeTab]);
 
@@ -128,18 +128,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setQuestionForm(initialQuestionForm); setEditingQuestionId(null); setShowQuestionForm(true);
     } else if (activeTab === 'SESI') {
       setSessionForm({ group_name: '', group_code: '', duration_minutes: 60, extra_time_minutes: 0, is_shuffled: 1, target_classes: [], teacher_ids: [] }); setEditingSessionId(null); setShowSessionForm(true);
-    } else if (activeTab === 'PENGGUNA') {
-      const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
-      const academicYear = month >= 7 ? `${year}/${year + 1}` : `${year - 1}/${year}`;
-      setUserForm({ name: '', role: UserRole.STUDENT, username: '', password: '', kelas: '', tahun_ajaran: academicYear });
     }
   };
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 flex flex-col items-center">
+    <div className="w-full min-h-screen bg-slate-100 flex flex-col items-center">
       
-      {/* PERSISTENT FIXED NAVBAR */}
-      <div ref={headerRef} className="fixed top-0 left-0 right-0 z-[150] bg-white shadow-md border-b border-slate-200">
+      {/* NAVBAR FIXED DENGAN Z-INDEX TERTINGGI */}
+      <div ref={headerRef} className="fixed top-0 left-0 right-0 z-[500] bg-white shadow-xl border-b border-slate-200">
         <div className="w-full">
           <AdminHeader 
             activeTab={activeTab} 
@@ -151,7 +147,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             isLoadingLogs={isLoadingLogs} 
           />
           {activeTab !== 'MENU' && (
-            <div className="bg-white pb-4"> {/* Menambah padding bawah agar AdminTabs tidak mepet */}
+            <div className="bg-white pb-5"> 
               <AdminTabs 
                 activeTab={activeTab} 
                 setActiveTab={setActiveTab} 
@@ -162,18 +158,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* Main Container: Transition Dihapus agar Padding berubah INSTAN saat tab diklik */}
+      {/* AREA KONTEN UTAMA */}
       <main 
-        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pb-12"
-        style={{ paddingTop: `${headerHeight + 10}px` }} 
+        className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-10 pb-20"
+        // paddingTop menggunakan headerHeight + 40px (Buffer ekstra agar tidak menabrak)
+        style={{ paddingTop: `${headerHeight + 40}px` }} 
       >
         <div className="w-full">
           {activeTab === 'MENU' && (
-            <AdminMenu setActiveTab={setActiveTab} />
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <AdminMenu setActiveTab={setActiveTab} />
+            </div>
           )}
 
           {activeTab === 'SOAL' && (
-            <div className="w-full max-w-7xl mx-auto bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 sm:p-10 min-h-[70vh]">
+            <div className="w-full bg-white rounded-[3.5rem] shadow-2xl shadow-slate-300/50 border border-slate-100 p-8 sm:p-12 min-h-[80vh] transition-all duration-500 animate-in zoom-in-95">
+              {/* Header internal box agar lebih luas informasinya */}
+              <div className="mb-10 border-b border-slate-50 pb-6">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">Manajemen Bank Soal</h2>
+                <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Total database: {questions.length} butir soal tersedia</p>
+              </div>
+
               <QuestionManager 
                 questions={questions} 
                 groups={groups} 
@@ -192,67 +197,53 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
+          {/* Tab lainnya juga dibuat lebih luas dengan p-8/sm:p-12 */}
           {activeTab === 'SESI' && (
-            <SessionManager 
-              groups={groups} 
-              questions={questions} 
-              users={users} 
-              examCode={examCode} 
-              activeGroupId={activeGroupId} 
-              refreshData={onRefresh} 
-              API_BASE_URL={API_BASE_URL}
-              showForm={showSessionForm}
-              setShowForm={setShowSessionForm}
-              editingId={editingSessionId}
-              setEditingId={setEditingSessionId}
-              form={sessionForm}
-              setForm={setSessionForm}
-            />
+            <div className="w-full bg-white rounded-[3.5rem] shadow-2xl border border-slate-100 p-8 sm:p-12">
+              <SessionManager 
+                groups={groups} questions={questions} users={users} examCode={examCode} 
+                activeGroupId={activeGroupId} refreshData={onRefresh} API_BASE_URL={API_BASE_URL}
+                showForm={showSessionForm} setShowForm={setShowSessionForm}
+                editingId={editingSessionId} setEditingId={setEditingSessionId}
+                form={sessionForm} setForm={setSessionForm}
+              />
+            </div>
           )}
 
           {activeTab === 'PENGGUNA' && (
-            <UserManager 
-              users={users} 
-              refreshData={onRefresh} 
-              API_BASE_URL={API_BASE_URL} 
-              accessLogs={accessLogs} 
-              sessionLogs={sessionLogs} 
-              scores={[]}
-              userForm={userForm}
-              setUserForm={setUserForm}
-            />
+            <div className="w-full bg-white rounded-[3.5rem] shadow-2xl border border-slate-100 p-8 sm:p-12">
+              <UserManager 
+                users={users} refreshData={onRefresh} API_BASE_URL={API_BASE_URL} 
+                accessLogs={accessLogs} sessionLogs={sessionLogs} scores={[]}
+                userForm={userForm} setUserForm={setUserForm}
+              />
+            </div>
           )}
 
           {activeTab === 'MONITORING' && (
             <AdminMonitoring 
-              users={users} 
-              groups={groups} 
-              questions={questions} 
-              currentUser={currentUser} 
-              lastSync={lastSync} 
-              onRefresh={onRefresh} 
+              users={users} groups={groups} questions={questions} 
+              currentUser={currentUser} lastSync={lastSync} onRefresh={onRefresh} 
             />
           )}
 
           {activeTab === 'LOG' && (
             <AdminLog 
-              accessLogs={accessLogs} 
-              sessionLogs={sessionLogs} 
-              users={users} 
-              fetchLogs={fetchLogs} 
-              isLoadingLogs={isLoadingLogs} 
+              accessLogs={accessLogs} sessionLogs={sessionLogs} 
+              users={users} fetchLogs={fetchLogs} isLoadingLogs={isLoadingLogs} 
             />
           )}
         </div>
       </main>
 
-      {/* Floating Refresh Button */}
+      {/* Floating Action Button yang lebih modern */}
       {activeTab !== 'MENU' && (
         <button
           onClick={onRefresh}
-          className="fixed bottom-6 right-6 z-[140] p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center"
+          className="fixed bottom-10 right-10 z-[600] p-5 bg-indigo-600 text-white rounded-[2rem] shadow-2xl hover:bg-indigo-700 hover:scale-110 active:scale-95 transition-all flex items-center justify-center group"
+          title="Sinkronisasi Data"
         >
-          <RefreshCw className={`w-6 h-6 ${isLoadingLogs ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-7 h-7 ${isLoadingLogs ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-700'}`} />
         </button>
       )}
     </div>
