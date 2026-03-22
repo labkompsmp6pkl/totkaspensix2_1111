@@ -38,12 +38,18 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   
   // State untuk Paginasi
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12; // Menampilkan 12 soal per halaman (cocok untuk grid 3 kolom)
+  const itemsPerPage = 12; // Menampilkan 12 soal per halaman
   
-  // Solusi Paling Akurat: Karena komponen <main> di AdminDashboard sudah memiliki
-  // padding-top, kita cukup scroll ke absolute nol (0).
+  // SOLUSI TERBAIK: Menggunakan scrollIntoView ke elemen Anchor yang 
+  // sudah diberi scroll-margin-top (pelindung dari fixed navbar)
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const element = document.getElementById('question-manager-top');
+    if (element) {
+      // block: 'start' memastikan scroll berhenti sejajar dengan elemen anchor
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const subjects = ['Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'Informatika', 'TKA Umum'];
@@ -107,7 +113,14 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const paginatedQuestions = filteredAndSortedQuestions.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="w-full space-y-6 pt-2 pb-24 min-h-[70vh]">
+    <div className="w-full space-y-6 pb-24 min-h-[70vh] relative">
+      
+      {/* ANCHOR POINT (TITIK PENDARATAN SCROLL) 
+        Terdapat scroll-mt-[300px] yang akan memaksa layar berhenti 300px di bawah batas atas layar, 
+        sehingga navbar fix tidak akan menutupi komponen di bawahnya. 
+      */}
+      <div id="question-manager-top" className="absolute top-0 left-0 w-full h-1 scroll-mt-[300px] sm:scroll-mt-[320px] pointer-events-none"></div>
+
       {/* Search & Add Bar Section */}
       <SearchAndAddBar 
         onSearch={(q) => setSearchQuery(q)} 
