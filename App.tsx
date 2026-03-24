@@ -79,8 +79,10 @@ const App: React.FC = () => {
   useEffect(() => {
     // Jalankan migrasi database sekali saat aplikasi dimuat
     const runMigration = async () => {
+      console.log("[MIGRATION] Memulai migrasi database di URL:", API_BASE_URL);
       try {
         const res = await fetch(`${API_BASE_URL}?action=migrate`);
+        console.log("[MIGRATION] Status Response:", res.status);
         const text = await res.text();
         
         // Cek apakah response adalah JSON yang valid
@@ -88,16 +90,21 @@ const App: React.FC = () => {
           try {
             const data = JSON.parse(text);
             if (data.success) {
-              console.log("[MIGRATION]", data.message);
+              console.log("[MIGRATION] Berhasil:", data.message);
+            } else {
+              console.warn("[MIGRATION] Gagal dari server:", data.message);
             }
           } catch (e) {
-            console.warn("[MIGRATION] Response bukan JSON valid, mengabaikan migrasi server.");
+            console.warn("[MIGRATION] Response bukan JSON valid:", text.substring(0, 100));
           }
         } else {
-          console.log("[MIGRATION] Mengabaikan migrasi di lingkungan lokal/dev.");
+          console.log("[MIGRATION] Response bukan JSON, mungkin lingkungan lokal atau error HTML.");
+          if (text.includes('403 Forbidden')) {
+            console.error("[MIGRATION] TERDETEKSI 403 FORBIDDEN. Periksa ModSecurity atau izin file api.php.");
+          }
         }
       } catch (e) {
-        console.error("[MIGRATION-ERROR]", e);
+        console.error("[MIGRATION-ERROR] Gagal fetch:", e);
       }
     };
     runMigration();

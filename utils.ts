@@ -1,5 +1,5 @@
 // Gunakan origin saat ini untuk API agar sinkron antara frontend dan backend di berbagai environment
-export const API_BASE_URL = (typeof window !== 'undefined' && (window.location.hostname.includes('run.app') || window.location.hostname.includes('localhost'))) 
+export const API_BASE_URL = (typeof window !== 'undefined') 
   ? `${window.location.origin}/api.php` 
   : "https://totka.smpn6pekalongan.org/api.php";
 

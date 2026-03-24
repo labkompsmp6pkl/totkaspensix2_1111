@@ -88,6 +88,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   useEffect(() => { 
+    console.log("[ADMIN-DASHBOARD] Mounted. Current Tab:", activeTab);
     fetchLogs(); 
     const interval = setInterval(fetchLogs, 30000);
     return () => clearInterval(interval);
@@ -215,7 +216,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ------------------------------------------- */}
       {/* AREA KONTEN UTAMA (KANAN)                   */}
       {/* ------------------------------------------- */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-slate-50">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative bg-slate-50">
         
         {/* HEADER KANAN (Aksi Dinamis & Mobile Toggle) */}
         <header className="h-24 bg-white border-b border-slate-200 flex items-center justify-between px-6 sm:px-10 shrink-0 z-[100] shadow-sm">
@@ -256,7 +257,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* CONTAINER SCROLL INDEPENDEN */}
         {/* Di sinilah komponen konten dirender. Karena memiliki 'overflow-y-auto', area ini 
             memiliki scrollbar miliknya sendiri, tidak akan pernah menabrak header/sidebar. */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-10 custom-scrollbar" id="main-scroll-container">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-10 custom-scrollbar min-h-0" id="main-scroll-container">
           <div className="max-w-[1600px] mx-auto pb-20">
             
             {activeTab === 'MENU' && (
