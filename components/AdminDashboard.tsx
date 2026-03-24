@@ -47,7 +47,7 @@ const initialQuestionForm: Partial<Question> = {
   statements: [],
   tableOptions: ['BENAR', 'SALAH'],
   points: 10,
-  subject: 'UMUM',
+  subject: 'Bahasa Indonesia', // Diberikan default yang valid
   group_ids: []
 };
 
@@ -60,18 +60,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
   const [sessionLogs, setSessionLogs] = useState<any[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // STATE QUESTION MANAGER
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState<string | number | null>(null);
-  const [questionForm, setQuestionForm] = useState<Partial<Question>>({});
+  const [questionForm, setQuestionForm] = useState<Partial<Question>>(initialQuestionForm);
 
   const questions = realQuestions.length > 0 ? realQuestions : dummyQuestions;
   const groups = realGroups.length > 0 ? realGroups : dummyGroups;
   const users = realUsers.length > 0 ? realUsers : [...realUsers, ...dummyUsers];
 
+  // STATE SESSION MANAGER
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
   const [sessionForm, setSessionForm] = useState<any>({});
 
+  // STATE USER MANAGER
   const [userForm, setUserForm] = useState<Partial<User> | null>(null);
 
   const fetchLogs = async () => {
@@ -95,7 +99,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleAddAction = () => {
     if (activeTab === 'SOAL') { 
+      // PERBAIKAN: Gunakan deep copy untuk menghindari mutasi reference antar-klik
       const freshForm = JSON.parse(JSON.stringify(initialQuestionForm));
+      // Set default group_id jika ada
+      if (activeGroupId) freshForm.group_ids = [activeGroupId];
+      
       setQuestionForm(freshForm);
       setEditingQuestionId(null);
       setShowQuestionForm(true); 
@@ -108,7 +116,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setShowSessionForm(true);
     }
     if (activeTab === 'PENGGUNA') {
-      setUserForm({ role: UserRole.STUDENT });
+      const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
+      const academicYear = month >= 7 ? `${year}/${year + 1}` : `${year - 1}/${year}`;
+      setUserForm({ role: UserRole.STUDENT, tahun_ajaran: academicYear });
     }
   };
 
@@ -122,7 +132,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   ] as const;
 
   return (
-    // Memastikan kontainer full-height dan tersembunyi scrollbar utamanya
     <div className="flex h-[100dvh] w-full bg-slate-50 overflow-hidden font-sans text-slate-900">
       
       {/* ------------------------------------------- */}
@@ -192,7 +201,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           })}
         </nav>
 
-        {/* Footer Sidebar: Sinkronisasi Terakhir (Diletakkan di bawah agar rapi) */}
+        {/* Footer Sidebar: Sinkronisasi Terakhir */}
         <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0">
            <div className="flex items-center justify-between">
               <div>
@@ -212,11 +221,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </aside>
 
-
       {/* ------------------------------------------- */}
       {/* AREA KONTEN UTAMA (KANAN)                   */}
       {/* ------------------------------------------- */}
-      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative bg-slate-50">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative bg-slate-100">
         
         {/* HEADER KANAN (Aksi Dinamis & Mobile Toggle) */}
         <header className="h-24 bg-white border-b border-slate-200 flex items-center justify-between px-6 sm:px-10 shrink-0 z-[100] shadow-sm">
@@ -255,9 +263,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </header>
 
         {/* CONTAINER SCROLL INDEPENDEN */}
-        {/* Di sinilah komponen konten dirender. Karena memiliki 'overflow-y-auto', area ini 
-            memiliki scrollbar miliknya sendiri, tidak akan pernah menabrak header/sidebar. */}
-        <div className="flex-1 force-scroll-container p-4 sm:p-10 custom-scrollbar" id="main-scroll-container">
+        <div className="flex-1 force-scroll-container p-4 sm:p-10 custom-scrollbar overflow-y-auto" id="main-scroll-container">
           <div className="max-w-[1600px] mx-auto pb-20">
             
             {activeTab === 'MENU' && (
@@ -268,9 +274,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             
             {activeTab === 'SOAL' && (
               <div className="w-full bg-white rounded-[2rem] sm:rounded-[3.5rem] shadow-xl shadow-slate-200/50 border border-slate-200 p-6 sm:p-12 min-h-[70vh]">
-                <div className="mb-8 border-b border-slate-100 pb-6">
-                   <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Manajemen Bank Soal</h2>
-                   <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Total: {questions.length} butir soal tersedia</p>
+                <div className="mb-8 border-b border-slate-100 pb-6 flex justify-between items-end">
+                   <div>
+                     <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Manajemen Bank Soal</h2>
+                     <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Total: {questions.length} butir soal tersedia</p>
+                   </div>
                 </div>
 
                 <QuestionManager 
