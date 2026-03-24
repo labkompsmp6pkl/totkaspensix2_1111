@@ -14,6 +14,13 @@ async function fetchAI(
   temperature: number,
   useReasoning: boolean
 ): Promise<{ ok: boolean; content?: string; error?: string; status?: number }> {
+  if (!OPENROUTER_API_KEY) {
+    return { 
+      ok: false, 
+      error: "Fitur AI belum aktif. Silakan masukkan 'OPENROUTER_API_KEY' di menu Settings (Environment Variables) AI Studio untuk mulai menggunakan fitur ini." 
+    };
+  }
+
   const body: any = {
     model: model,
     temperature: temperature,
@@ -119,7 +126,8 @@ export async function queryWithPipeline(
     } else {
       console.error(`[AI-ERROR] Tahap ${stage.role} gagal total: ${result.error}`);
       if (i === 0) {
-        return "Maaf, asisten AI sedang mengalami gangguan teknis. Silakan coba lagi nanti.";
+        // Jika gagal di tahap pertama, kembalikan pesan error yang lebih informatif
+        return result.error || "Maaf, asisten AI sedang mengalami gangguan teknis. Silakan coba lagi nanti.";
       }
       console.log(`[AI-INFO] Melanjutkan dengan teks dari tahap sebelumnya.`);
     }

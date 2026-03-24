@@ -9,15 +9,15 @@ export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
  * API Key retrieval with fallback mechanism.
  */
 export const OPENROUTER_API_KEY = 
-  (typeof process !== 'undefined' ? process.env.OPENROUTER_API_KEY : '') || 
   (import.meta as any).env?.VITE_OPENROUTER_API_KEY || 
-  "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";
+  (typeof process !== 'undefined' ? process.env.OPENROUTER_API_KEY : '') || 
+  "";
 
 /**
  * AI PIPELINE DEFINITION
  * Uses a sequence of models to ensure high-quality, corrected, and polished output.
  */
-export const FALLBACK_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free";
+export const FALLBACK_MODEL = "openrouter/free";
 
 export const PIPELINE = [
   { 
