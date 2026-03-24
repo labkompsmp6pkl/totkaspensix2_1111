@@ -51,7 +51,6 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 </div>
              </div>
 
-             {/* PERBAIKAN FATAL: Menambahkan relative z-50 agar kotak atas ini TIDAK tertimpa oleh MathJax Preview yang ada di baris bawahnya */}
              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-50">
                 <div className="space-y-1">
                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Mata Pelajaran</label>
@@ -127,21 +126,19 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
              </div>
           </div>
 
-          {/* PERBAIKAN: z-10 diberikan agar kotak ini tidak menutupi komponen atasnya */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
              <textarea 
-                className="w-full p-6 bg-slate-50 border-2 border-slate-200 rounded-[2.5rem] min-h-[160px] outline-none text-[12px] font-semibold focus:bg-white focus:border-blue-500 transition-all shadow-inner cursor-text relative z-20" 
+                className="w-full p-6 bg-white border border-slate-300 rounded-[2.5rem] min-h-[160px] outline-none text-[12px] font-semibold focus:ring-2 focus:ring-blue-500 transition-all shadow-sm cursor-text relative z-[60] pointer-events-auto" 
                 value={form.text || ''} 
                 onChange={e => setForm({...form, text: e.target.value})} 
-                placeholder="Narasi/Teks Soal..." 
+                placeholder="Narasi/Teks Soal... (Ketik di sini)" 
              />
-             <div className="space-y-4">
-                {/* PERBAIKAN: Mengisolasi render MathJax dengan overflow-hidden dan z-0 agar tidak membengkak keluar */}
-                <div className="bg-slate-50 p-6 rounded-[2.5rem] border-4 border-dashed border-slate-200 min-h-[120px] overflow-hidden relative z-0 pointer-events-none">
+             <div className="space-y-4 relative z-10 flex flex-col">
+                <div className="bg-slate-50 p-6 rounded-[2.5rem] border-4 border-dashed border-slate-200 min-h-[120px] overflow-hidden pointer-events-none relative z-0 flex-1">
                    <MathJax dynamic><div className="text-sm font-medium text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: (form.text || '').trim() || '<span class="text-slate-300">Preview teks soal...</span>' }} /></MathJax>
                 </div>
                 <input 
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs cursor-text focus:outline-none focus:border-blue-500 relative z-20" 
+                  className="w-full p-4 bg-white border border-slate-300 rounded-2xl font-bold text-xs cursor-text focus:outline-none focus:ring-2 focus:ring-blue-500 relative z-[60] pointer-events-auto shadow-sm" 
                   value={form.mediaUrl || ''} 
                   onChange={e => setForm({...form, mediaUrl: e.target.value})} 
                   placeholder="URL Gambar Pendukung (Opsional)" 
@@ -150,17 +147,17 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
           </div>
 
           <div className="bg-slate-50/50 p-6 sm:p-10 rounded-[4rem] border-2 border-slate-100 space-y-8 shadow-inner relative z-10">
-             <div className="flex flex-col sm:flex-row justify-between items-center border-b border-slate-200 pb-4 gap-4">
+             <div className="flex flex-col sm:flex-row justify-between items-center border-b border-slate-200 pb-4 gap-4 relative z-50">
                <h4 className="text-[11px] font-black uppercase text-blue-900 tracking-[0.3em] italic">Opsi Jawaban & Poin</h4>
                {form.type === 'table' && (
-                 <div className="flex gap-2 p-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                 <div className="flex gap-2 p-2 bg-white rounded-2xl border border-slate-200 shadow-sm relative z-50">
                    <span className="text-[8px] font-black text-slate-400 uppercase self-center px-2">Edit Header Kolom:</span>
-                   <input className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-lg text-[9px] font-black text-center uppercase focus:outline-none focus:border-blue-500 cursor-text" placeholder="KOLOM 1" value={form.tableOptions?.[0] || 'BENAR'} onChange={e => {
+                   <input className="w-24 p-2 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-center uppercase focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text pointer-events-auto z-50" placeholder="KOLOM 1" value={form.tableOptions?.[0] || 'BENAR'} onChange={e => {
                      const next = [...(form.tableOptions || ['BENAR', 'SALAH'])];
                      next[0] = e.target.value.toUpperCase();
                      setForm({...form, tableOptions: next});
                    }} />
-                   <input className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-lg text-[9px] font-black text-center uppercase focus:outline-none focus:border-blue-500 cursor-text" placeholder="KOLOM 2" value={form.tableOptions?.[1] || 'SALAH'} onChange={e => {
+                   <input className="w-24 p-2 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-center uppercase focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text pointer-events-auto z-50" placeholder="KOLOM 2" value={form.tableOptions?.[1] || 'SALAH'} onChange={e => {
                      const next = [...(form.tableOptions || ['BENAR', 'SALAH'])];
                      next[1] = e.target.value.toUpperCase();
                      setForm({...form, tableOptions: next});
@@ -170,17 +167,17 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
              </div>
 
              {(form.type === 'single' || form.type === 'multiple') && (
-               <div className="grid grid-cols-1 gap-6">
+               <div className="grid grid-cols-1 gap-6 relative z-50">
                  {ensureArray(form.options).map((opt, idx) => {
                    const isCorrect = form.type === 'single' ? form.correctOptionId === opt.id : ensureArray(form.correctOptionIds).includes(opt.id);
                    return (
-                     <div key={opt.id} className={`bg-white p-6 rounded-[2.5rem] border-2 transition-all shadow-sm flex flex-col gap-6 relative z-20 ${isCorrect ? 'border-blue-200 bg-blue-50/30' : 'border-slate-100 hover:border-slate-200'}`}>
-                        <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+                     <div key={opt.id} className={`bg-white p-6 rounded-[2.5rem] border-2 transition-all shadow-sm flex flex-col gap-6 relative z-50 ${isCorrect ? 'border-blue-300 bg-blue-50/40' : 'border-slate-200 hover:border-blue-100'}`}>
+                        <div className="flex flex-col md:flex-row gap-6 items-start md:items-center relative z-50">
                            <div className="flex items-center gap-4 shrink-0">
                               <input 
                                 type={form.type === 'single' ? 'radio' : 'checkbox'} 
                                 name={`question-options-${form.id || 'new'}`}
-                                className="w-6 h-6 accent-blue-900 cursor-pointer" 
+                                className="w-6 h-6 accent-blue-900 cursor-pointer pointer-events-auto z-50" 
                                 checked={isCorrect} 
                                 onChange={() => {
                                   if (form.type === 'single') setForm({...form, correctOptionId: opt.id});
@@ -191,7 +188,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                                   }
                               }} />
                               <span 
-                                className={`w-12 h-12 flex items-center justify-center rounded-xl font-black text-sm cursor-pointer transition-all hover:scale-105 active:scale-95 ${isCorrect ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' : 'bg-slate-50 text-slate-400 border border-slate-200 hover:bg-slate-100'}`}
+                                className={`w-12 h-12 flex items-center justify-center rounded-xl font-black text-sm cursor-pointer transition-all hover:scale-105 active:scale-95 pointer-events-auto z-50 ${isCorrect ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'}`}
                                 onClick={() => {
                                   if (form.type === 'single') setForm({...form, correctOptionId: opt.id});
                                   else {
@@ -204,26 +201,29 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                                 {opt.id.toUpperCase()}
                               </span>
                            </div>
-                           <div className="flex-1 w-full space-y-3">
+                           
+                           {/* PERBAIKAN FATAL: Memisahkan textarea dengan MathJax menggunakan flex-col dan z-index tinggi */}
+                           <div className="flex-1 w-full space-y-3 flex flex-col relative z-50">
                               <textarea 
-                                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] font-semibold outline-none focus:bg-white focus:border-blue-500 transition-all min-h-[60px] cursor-text" 
-                                value={opt.text} 
+                                className="w-full p-4 bg-white border border-slate-300 rounded-2xl text-[12px] font-semibold outline-none focus:ring-2 focus:ring-blue-500 transition-all min-h-[70px] cursor-text relative z-[60] pointer-events-auto shadow-sm" 
+                                value={opt.text || ''} 
                                 onChange={e => {
                                   const next = ensureArray(form.options).map((o, i) => i === idx ? { ...o, text: e.target.value } : o);
                                   setForm({...form, options: next});
                                 }} 
-                                placeholder={`Isi teks pilihan ${opt.id.toUpperCase()}...`} 
+                                placeholder={`Ketik jawaban opsi ${opt.id.toUpperCase()} di sini...`} 
                               />
-                              <div className="p-3 bg-white/50 border border-slate-100 rounded-xl overflow-hidden pointer-events-none">
+                              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden pointer-events-none relative z-10">
                                  <MathJax dynamic><div className="text-[10px] font-bold text-slate-500" dangerouslySetInnerHTML={{ __html: (opt.text || '').trim() || '<span class="italic text-slate-300">Pratinjau jawaban...</span>' }} /></MathJax>
                               </div>
                            </div>
+
                            {form.scoring_mode === 'partial' && (
-                              <div className="flex flex-col items-center shrink-0 w-full md:w-auto">
+                              <div className="flex flex-col items-center shrink-0 w-full md:w-auto relative z-50">
                                 <label className="text-[8px] font-black text-slate-400 uppercase mb-1">Poin</label>
                                 <input 
                                   type="number" 
-                                  className="w-20 p-4 bg-blue-900 text-white rounded-xl text-center font-black text-sm shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-text" 
+                                  className="w-20 p-4 bg-blue-900 text-white rounded-xl text-center font-black text-sm shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-text pointer-events-auto z-50" 
                                   value={opt.points} 
                                   onChange={e => {
                                     const next = ensureArray(form.options).map((o, i) => i === idx ? { ...o, points: parseInt(e.target.value) || 0 } : o);
@@ -234,7 +234,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                            )}
                            <button 
                              onClick={() => { const next = ensureArray(form.options).filter((_, i) => i !== idx); setForm({...form, options: next}); }} 
-                             className="p-3 bg-red-50 text-red-400 border border-red-100 rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-all cursor-pointer"
+                             className="p-3 bg-white text-red-400 border border-red-200 rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-all cursor-pointer pointer-events-auto z-50 shadow-sm"
                            >
                              ✕
                            </button>
@@ -251,7 +251,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                      const nextId = String.fromCharCode(nextCharCode);
                      setForm({...form, options: [...current, { id: nextId, text: '', points: 0 }]});
                    }} 
-                   className="w-full py-5 border-4 border-dashed border-slate-200 text-slate-400 font-black text-[11px] uppercase rounded-[2.5rem] hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer active:scale-[0.99]"
+                   className="w-full py-5 border-4 border-dashed border-slate-300 text-slate-400 font-black text-[11px] uppercase rounded-[2.5rem] hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer active:scale-[0.99] relative z-50 pointer-events-auto"
                  >
                    + TAMBAH OPSI JAWABAN
                  </button>
@@ -259,27 +259,27 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
              )}
 
              {form.type === 'table' && (
-               <div className="space-y-6">
+               <div className="space-y-6 relative z-50">
                   {ensureArray(form.statements).map((st, idx) => (
-                    <div key={st.id || idx} className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-100 shadow-sm space-y-4 relative z-20">
-                       <div className="flex flex-col md:flex-row gap-6 items-start">
-                          <div className="flex-1 w-full space-y-3">
+                    <div key={st.id || idx} className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 shadow-sm space-y-4 relative z-50">
+                       <div className="flex flex-col md:flex-row gap-6 items-start relative z-50">
+                          <div className="flex-1 w-full space-y-3 flex flex-col relative z-50">
                              <textarea 
-                               className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] font-semibold outline-none focus:border-blue-500 min-h-[60px] cursor-text" 
-                               value={st.text} 
+                               className="w-full p-4 bg-white border border-slate-300 rounded-2xl text-[12px] font-semibold outline-none focus:ring-2 focus:ring-blue-500 min-h-[70px] cursor-text relative z-[60] pointer-events-auto shadow-sm" 
+                               value={st.text || ''} 
                                onChange={e => {
                                  const next = ensureArray(form.statements).map((s, i) => i === idx ? { ...s, text: e.target.value } : s);
                                  setForm({...form, statements: next});
                                }} 
-                               placeholder="Teks pernyataan baris..." 
+                               placeholder="Ketik pernyataan baris di sini..." 
                              />
-                             <div className="p-3 bg-white/50 border border-slate-100 rounded-xl overflow-hidden pointer-events-none">
+                             <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden pointer-events-none relative z-10">
                                 <MathJax dynamic><div className="text-[10px] font-bold text-slate-500" dangerouslySetInnerHTML={{ __html: (st.text || '').trim() || '<span class="italic text-slate-300">Pratinjau pernyataan...</span>' }} /></MathJax>
                              </div>
                           </div>
-                          <div className="flex flex-col gap-1 shrink-0 w-full md:w-auto">
+                          <div className="flex flex-col gap-1 shrink-0 w-full md:w-auto relative z-50">
                              <label className="text-[8px] font-black text-slate-400 uppercase mb-1 text-center">Kunci Baris</label>
-                             <div className="flex gap-1">
+                             <div className="flex gap-1 relative z-50">
                                {ensureArray(form.tableOptions).map(to => (
                                  <button 
                                    key={to} 
@@ -287,7 +287,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                                      const next = ensureArray(form.statements).map((s, i) => i === idx ? { ...s, correctAnswer: to } : s);
                                      setForm({...form, statements: next});
                                    }} 
-                                   className={`flex-1 px-4 py-3 rounded-xl text-[9px] font-black uppercase border transition-all cursor-pointer hover:-translate-y-0.5 active:scale-95 ${st.correctAnswer === to ? 'bg-blue-900 text-white shadow-md border-blue-950' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-blue-600'}`}
+                                   className={`flex-1 px-4 py-3 rounded-xl text-[9px] font-black uppercase border transition-all cursor-pointer hover:-translate-y-0.5 active:scale-95 pointer-events-auto z-50 ${st.correctAnswer === to ? 'bg-blue-900 text-white shadow-md border-blue-950' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-blue-600'}`}
                                  >
                                    {to}
                                  </button>
@@ -295,11 +295,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                              </div>
                           </div>
                           {form.scoring_mode === 'partial' && (
-                            <div className="flex flex-col items-center">
+                            <div className="flex flex-col items-center relative z-50">
                                <label className="text-[8px] font-black text-slate-400 uppercase mb-1">Poin</label>
                                <input 
                                  type="number" 
-                                 className="w-20 p-4 bg-blue-900 text-white rounded-xl text-center font-black text-sm shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-text" 
+                                 className="w-20 p-4 bg-blue-900 text-white rounded-xl text-center font-black text-sm shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-text pointer-events-auto z-50" 
                                  value={st.points} 
                                  onChange={e => {
                                    const next = ensureArray(form.statements).map((s, i) => i === idx ? { ...s, points: parseInt(e.target.value) || 0 } : s);
@@ -308,13 +308,13 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                                />
                             </div>
                           )}
-                          <button onClick={() => { const next = ensureArray(form.statements).filter((_, i) => i !== idx); setForm({...form, statements: next}); }} className="p-3 bg-red-50 text-red-400 border border-red-100 rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-all cursor-pointer">✕</button>
+                          <button onClick={() => { const next = ensureArray(form.statements).filter((_, i) => i !== idx); setForm({...form, statements: next}); }} className="p-3 bg-white text-red-400 border border-red-200 rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-all cursor-pointer pointer-events-auto z-50 shadow-sm">✕</button>
                        </div>
                     </div>
                   ))}
                   <button 
                     onClick={() => setForm({...form, statements: [...ensureArray(form.statements), { id: Date.now().toString(), text: '', points: 5, correctAnswer: ensureArray(form.tableOptions)?.[0] || 'BENAR' }]})} 
-                    className="w-full py-5 border-4 border-dashed border-slate-200 text-slate-400 font-black text-[11px] uppercase rounded-[2.5rem] hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer active:scale-[0.99]"
+                    className="w-full py-5 border-4 border-dashed border-slate-300 text-slate-400 font-black text-[11px] uppercase rounded-[2.5rem] hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer active:scale-[0.99] relative z-50 pointer-events-auto"
                   >
                     + TAMBAH BARIS PERNYATAAN
                   </button>
@@ -322,9 +322,9 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
              )}
           </div>
 
-          <div className="flex gap-4 pt-10 border-t border-slate-100 relative z-50">
-             <button onClick={() => { console.log("Batal"); onClose(); }} className="flex-1 py-6 bg-slate-100 border border-slate-200 rounded-[2rem] font-black uppercase text-[11px] text-slate-500 hover:bg-slate-200 transition-all cursor-pointer hover:-translate-y-0.5 active:scale-95">BATAL</button>
-             <button onClick={() => { console.log("Simpan"); onSave(); }} disabled={isSaving} className="flex-[2] py-6 bg-blue-900 text-white rounded-[2rem] font-black uppercase text-[12px] shadow-2xl border-b-8 border-blue-950 active:scale-95 transition-all tracking-[0.2em] cursor-pointer hover:bg-blue-800 disabled:opacity-50 hover:-translate-y-0.5">
+          <div className="flex gap-4 pt-10 border-t border-slate-100 relative z-[200]">
+             <button onClick={() => { console.log("Batal"); onClose(); }} className="flex-1 py-6 bg-slate-100 border border-slate-200 rounded-[2rem] font-black uppercase text-[11px] text-slate-500 hover:bg-slate-200 transition-all cursor-pointer hover:-translate-y-0.5 active:scale-95 pointer-events-auto z-[200]">BATAL</button>
+             <button onClick={() => { console.log("Simpan"); onSave(); }} disabled={isSaving} className="flex-[2] py-6 bg-blue-900 text-white rounded-[2rem] font-black uppercase text-[12px] shadow-2xl border-b-8 border-blue-950 active:scale-95 transition-all tracking-[0.2em] cursor-pointer hover:bg-blue-800 disabled:opacity-50 hover:-translate-y-0.5 pointer-events-auto z-[200]">
                {isSaving ? '⏳ MENYIMPAN...' : 'SIMPAN KE BANK SOAL 🚀'}
              </button>
           </div>
