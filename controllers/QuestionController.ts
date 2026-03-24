@@ -1,14 +1,14 @@
 
 import { Response } from '../core/Response';
 import { Database } from '../core/Database';
-import { API_BASE_URL } from '../utils';
+import { API_BASE_URL, robustFetch, toFormData } from '../utils';
 
 const API_URL = API_BASE_URL;
 
 export const QuestionController = {
   getAll: async () => {
     try {
-      const res = await fetch(`${API_URL}?action=get_questions`);
+      const res = await robustFetch(`${API_URL}?action=get_questions`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       Database.saveTable('questions', data); 
@@ -20,10 +20,10 @@ export const QuestionController = {
   },
   save: async (data: any) => {
     try {
-      const res = await fetch(`${API_URL}?action=save_question`, {
+      const res = await robustFetch(`${API_URL}?action=save_question`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: toFormData(data).toString()
       });
       if (!res.ok) throw new Error();
       return await res.json();
@@ -41,7 +41,7 @@ export const QuestionController = {
   },
   delete: async (id: string) => {
     try {
-      const res = await fetch(`${API_URL}?action=delete_question&id=${id}`, { method: 'DELETE' });
+      const res = await robustFetch(`${API_URL}?action=delete_question&id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       return await res.json();
     } catch (e) {

@@ -41,6 +41,54 @@ export const formatFullDateTime = (dateStr: any): string => {
 };
 
 /**
+ * Helper untuk mengubah object menjadi URLSearchParams (x-www-form-urlencoded)
+ * Berguna untuk melewati firewall yang memblokir JSON body.
+ */
+export const toFormData = (data: any): URLSearchParams => {
+  const params = new URLSearchParams();
+  Object.keys(data).forEach(key => {
+    const val = data[key];
+    if (val === null || val === undefined) return;
+    
+    if (typeof val === 'object') {
+      params.append(key, JSON.stringify(val));
+    } else {
+      params.append(key, val.toString());
+    }
+  });
+  return params;
+};
+
+/**
+ * Fetch wrapper yang lebih tangguh terhadap 403 Forbidden
+ */
+export const robustFetch = async (url: string, options: any = {}) => {
+  try {
+    const res = await fetch(url, options);
+    
+    if (res.status === 403) {
+      console.error("403 Forbidden detected at:", url);
+      return { 
+        ok: false, 
+        status: 403, 
+        json: async () => ({ success: false, message: "Akses Ditolak (403). Periksa ModSecurity atau Izin File di Hosting." }),
+        text: async () => "403 Forbidden"
+      };
+    }
+    
+    return res;
+  } catch (e) {
+    console.error("Network error at:", url, e);
+    return { 
+      ok: false, 
+      status: 0, 
+      json: async () => ({ success: false, message: "Koneksi Gagal" }),
+      text: async () => "Network Error"
+    };
+  }
+};
+
+/**
  * Robust JSON Parsing
  */
 export const robustParse = (data: any) => {

@@ -1,17 +1,17 @@
 
 import { Response } from '../core/Response';
 import { Database } from '../core/Database';
-import { API_BASE_URL } from '../utils';
+import { API_BASE_URL, robustFetch, toFormData } from '../utils';
 
 const API_URL = API_BASE_URL;
 
 export const ScoreController = {
   submit: async (data: any) => {
     try {
-      const res = await fetch(`${API_URL}?action=submit_score`, {
+      const res = await robustFetch(`${API_URL}?action=submit_score`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: toFormData(data).toString()
       });
       if (!res.ok) throw new Error();
       return await res.json();
@@ -20,7 +20,6 @@ export const ScoreController = {
       scores.push({ ...data, id: Date.now(), created_at: new Date().toISOString() });
       Database.saveTable('scores', scores);
       
-      // Clear progress after finish
       const prog = Database.getTable('progress').filter((p: any) => !(p.user_id === data.studentId && p.group_id === data.groupId));
       Database.saveTable('progress', prog);
       return { success: true };
@@ -28,7 +27,7 @@ export const ScoreController = {
   },
   getAll: async () => {
     try {
-      const res = await fetch(`${API_URL}?action=get_scores&_t=${Date.now()}`);
+      const res = await robustFetch(`${API_URL}?action=get_scores&_t=${Date.now()}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       Database.saveTable('scores', data);
@@ -45,7 +44,7 @@ export const ScoreController = {
       if (params.group_id) q.append('group_id', params.group_id.toString());
       q.append('_t', (params._t || Date.now()).toString());
       
-      const res = await fetch(`${API_URL}?action=get_score_history&${q.toString()}`);
+      const res = await robustFetch(`${API_URL}?action=get_score_history&${q.toString()}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       return Response.json(data);
@@ -62,10 +61,10 @@ export const ScoreController = {
   },
   reset: async (params: any) => {
     try {
-      const res = await fetch(`${API_URL}?action=reset_score`, {
+      const res = await robustFetch(`${API_URL}?action=reset_score`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: toFormData(params).toString()
       });
       if (!res.ok) throw new Error();
       return await res.json();

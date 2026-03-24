@@ -1,33 +1,31 @@
 
 import { Response } from '../core/Response';
 import { Database } from '../core/Database';
-import { API_BASE_URL } from '../utils';
+import { API_BASE_URL, robustFetch, toFormData } from '../utils';
 
 const API_URL = API_BASE_URL;
 
 export const GroupController = {
   getAll: async () => {
     try {
-      const res = await fetch(`${API_URL}?action=get_groups`);
+      const res = await robustFetch(`${API_URL}?action=get_groups`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       
-      // Gunakan method khusus untuk menyimpan dengan validasi
       Database.saveGroups(Array.isArray(data) ? data : (data.data || []));
       
       return Response.json(data);
     } catch (e) {
-      // Fallback ke data lokal jika offline
       const localData = Database.getGroups();
       return Response.json(localData);
     }
   },
   save: async (data: any) => {
     try {
-      const res = await fetch(`${API_URL}?action=save_group`, {
+      const res = await robustFetch(`${API_URL}?action=save_group`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: toFormData(data).toString()
       });
       if (!res.ok) throw new Error();
       return await res.json();
@@ -45,7 +43,7 @@ export const GroupController = {
   },
   delete: async (id: number) => {
     try {
-      const res = await fetch(`${API_URL}?action=delete_group&id=${id}`, { method: 'DELETE' });
+      const res = await robustFetch(`${API_URL}?action=delete_group&id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       return await res.json();
     } catch (e) {
@@ -56,10 +54,10 @@ export const GroupController = {
   },
   toggleStatus: async (params: { group_id: number, status: 'START' | 'STOP', performer_id: number }) => {
     try {
-      const res = await fetch(`${API_URL}?action=toggle_group_status`, {
+      const res = await robustFetch(`${API_URL}?action=toggle_group_status`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: toFormData(params).toString()
       });
       if (!res.ok) throw new Error();
       return await res.json();

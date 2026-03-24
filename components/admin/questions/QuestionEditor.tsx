@@ -20,8 +20,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   form, setForm, groups, subjects, autoCalculatedPoints, isSaving, onSave, onClose, handleModeChange
 }) => {
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[2000] flex items-center justify-center p-2 sm:p-6 overflow-hidden">
-       <div className="bg-white w-full max-w-6xl rounded-[3rem] sm:rounded-[4rem] p-6 sm:p-12 shadow-2xl overflow-y-auto max-h-[95vh] space-y-8 animate-in zoom-in-95 border-8 border-white">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[4000] flex items-center justify-center p-2 sm:p-6 overflow-hidden pointer-events-auto">
+       <div className="bg-white w-full max-w-6xl rounded-[3rem] sm:rounded-[4rem] p-6 sm:p-12 shadow-2xl overflow-y-auto max-h-[95vh] space-y-8 animate-in zoom-in-95 border-8 border-white relative">
           <button onClick={onClose} className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center bg-slate-50 rounded-full text-slate-300 hover:text-red-500 font-black text-2xl transition-all">✕</button>
 
           <div className="flex flex-col gap-6 border-b pb-8">

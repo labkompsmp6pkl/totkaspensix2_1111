@@ -8,8 +8,8 @@ const QuestionPreview = ({ question, onClose }: any) => {
   if (!question) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[3000] flex items-center justify-center p-4">
-       <div className="bg-white w-full max-w-2xl rounded-[3rem] p-8 sm:p-10 shadow-2xl space-y-8 animate-in zoom-in-95 border-8 border-slate-50 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[4500] flex items-center justify-center p-4 pointer-events-auto">
+       <div className="bg-white w-full max-w-2xl rounded-[3rem] p-8 sm:p-10 shadow-2xl space-y-8 animate-in zoom-in-95 border-8 border-slate-50 flex flex-col max-h-[90vh] relative">
           <div className="flex justify-between items-center border-b pb-4">
              <div>
                 <h3 className="text-xl font-black text-blue-900 uppercase italic leading-none">Pratinjau Butir Soal</h3>
