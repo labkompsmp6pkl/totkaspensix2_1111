@@ -9,7 +9,7 @@ interface UserFormModalProps {
 
 const UserFormModal: React.FC<UserFormModalProps> = ({ userForm, setUserForm, onSave }) => {
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[5000] flex items-center justify-center p-4 pointer-events-auto">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[9999] flex items-center justify-center p-4 pointer-events-auto">
       <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl border-4 border-white animate-in zoom-in-95 relative">
         <div className="flex justify-between items-center mb-8">
           <h3 className="text-2xl font-black uppercase text-blue-900 italic tracking-tighter">

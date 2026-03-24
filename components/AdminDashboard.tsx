@@ -32,6 +32,25 @@ interface AdminDashboardProps {
   setActiveTab: (tab: 'MENU' | 'SOAL' | 'SESI' | 'PENGGUNA' | 'MONITORING' | 'LOG') => void;
 }
 
+const initialQuestionForm: Partial<Question> = {
+  text: '',
+  type: 'single',
+  scoring_mode: 'all_or_nothing',
+  options: [
+    { id: 'a', text: '', points: 0 },
+    { id: 'b', text: '', points: 0 },
+    { id: 'c', text: '', points: 0 },
+    { id: 'd', text: '', points: 0 }
+  ],
+  correctOptionId: 'a',
+  correctOptionIds: [],
+  statements: [],
+  tableOptions: ['BENAR', 'SALAH'],
+  points: 10,
+  subject: 'UMUM',
+  group_ids: []
+};
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
   currentUser, questions: realQuestions, setQuestions, users: realUsers, setUsers, 
   groups: realGroups, activeGroupId, examCode, setExamCode, lastSync, onRefresh, onLogout,
@@ -59,22 +78,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const [userForm, setUserForm] = useState<Partial<User> | null>(null);
 
-  const initialQuestionForm: Partial<Question> = {
-    text: '',
-    type: 'single',
-    scoring_mode: 'all_or_nothing',
-    options: [
-      { id: 'a', text: '', points: 0 },
-      { id: 'b', text: '', points: 0 },
-      { id: 'c', text: '', points: 0 },
-      { id: 'd', text: '', points: 0 }
-    ],
-    correctOptionId: 'a',
-    points: 10,
-    subject: 'UMUM',
-    group_ids: []
-  };
-
   const fetchLogs = async () => {
     setIsLoadingLogs(true);
     try {
@@ -95,8 +98,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, []);
 
   const handleAddAction = () => {
+    console.log("[AdminDashboard] handleAddAction called. activeTab:", activeTab);
     if (activeTab === 'SOAL') { 
-      setQuestionForm(initialQuestionForm);
+      console.log("[AdminDashboard] Setting question form to initial state (deep copy)");
+      const freshForm = JSON.parse(JSON.stringify(initialQuestionForm));
+      setQuestionForm(freshForm);
       setEditingQuestionId(null);
       setShowQuestionForm(true); 
     }

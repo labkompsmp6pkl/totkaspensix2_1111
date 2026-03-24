@@ -29,6 +29,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   questions, groups, refreshData, API_BASE_URL, activeGroupId, currentUser,
   showForm, setShowForm, editingId, setEditingId, form, setForm, initialForm
 }) => {
+  console.log("[QuestionManager] Rendered. showForm:", showForm, "editingId:", editingId);
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -124,7 +125,13 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
       
       <SearchAndAddBar 
         onSearch={(q) => setSearchQuery(q)} 
-        onAdd={() => { setForm(initialForm); setEditingId(null); setShowForm(true); }}
+        onAdd={() => { 
+          // Deep copy to prevent mutation of initialForm
+          const freshForm = JSON.parse(JSON.stringify(initialForm));
+          setForm(freshForm); 
+          setEditingId(null); 
+          setShowForm(true); 
+        }}
       />
       
       <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shrink-0">

@@ -19,8 +19,13 @@ interface QuestionEditorProps {
 const QuestionEditor: React.FC<QuestionEditorProps> = ({
   form, setForm, groups, subjects, autoCalculatedPoints, isSaving, onSave, onClose, handleModeChange
 }) => {
+  React.useEffect(() => {
+    console.log("[QuestionEditor] Mounted");
+    return () => console.log("[QuestionEditor] Unmounted");
+  }, []);
+  console.log("[QuestionEditor] Rendered. form.id:", form.id, "form.type:", form.type);
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[4000] flex items-center justify-center p-2 sm:p-6 overflow-hidden pointer-events-auto">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[9999] flex items-center justify-center p-2 sm:p-6 overflow-hidden pointer-events-auto">
        <div className="bg-white w-full max-w-6xl rounded-[3rem] sm:rounded-[4rem] p-6 sm:p-12 shadow-2xl overflow-y-auto max-h-[95vh] space-y-8 animate-in zoom-in-95 border-8 border-white relative">
           <button onClick={onClose} className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center bg-slate-50 rounded-full text-slate-300 hover:text-red-500 font-black text-2xl transition-all">✕</button>
 
@@ -125,13 +130,18 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
              {(form.type === 'single' || form.type === 'multiple') && (
                <div className="grid grid-cols-1 gap-6">
-                 {form.options?.map((opt, idx) => {
+                 {ensureArray(form.options).map((opt, idx) => {
                    const isCorrect = form.type === 'single' ? form.correctOptionId === opt.id : ensureArray(form.correctOptionIds).includes(opt.id);
                    return (
-                     <div key={idx} className={`bg-white p-6 rounded-[2.5rem] border-2 transition-all shadow-sm flex flex-col gap-6 ${isCorrect ? 'border-blue-200 bg-blue-50/20' : 'border-slate-100'}`}>
+                     <div key={opt.id} className={`bg-white p-6 rounded-[2.5rem] border-2 transition-all shadow-sm flex flex-col gap-6 ${isCorrect ? 'border-blue-200 bg-blue-50/20' : 'border-slate-100'}`}>
                         <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
                            <div className="flex items-center gap-4 shrink-0">
-                              <input type={form.type === 'single' ? 'radio' : 'checkbox'} className="w-6 h-6 accent-blue-900 cursor-pointer" checked={isCorrect} onChange={() => {
+                              <input 
+                                type={form.type === 'single' ? 'radio' : 'checkbox'} 
+                                name="question-options"
+                                className="w-6 h-6 accent-blue-900 cursor-pointer" 
+                                checked={isCorrect} 
+                                onChange={() => {
                                   if (form.type === 'single') setForm({...form, correctOptionId: opt.id});
                                   else {
                                     const cur = ensureArray(form.correctOptionIds);
@@ -143,8 +153,9 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                            </div>
                            <div className="flex-1 w-full space-y-3">
                               <textarea className="w-full p-4 bg-slate-50 border rounded-2xl text-[11px] font-semibold outline-none focus:bg-white focus:border-blue-200 transition-all min-h-[60px]" value={opt.text} onChange={e => {
-                                 const next = [...(form.options || [])];
-                                 next[idx].text = e.target.value;
+                                 const next = ensureArray(form.options).map((o, i) => 
+                                   i === idx ? { ...o, text: e.target.value } : o
+                                 );
                                  setForm({...form, options: next});
                               }} placeholder={`Isi teks pilihan ${opt.id.toUpperCase()}...`} />
                               <div className="p-3 bg-white/50 border border-slate-100 rounded-xl">
@@ -155,20 +166,29 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                               <div className="flex flex-col items-center shrink-0 w-full md:w-auto">
                                 <label className="text-[8px] font-black text-slate-400 uppercase mb-1">Poin</label>
                                 <input type="number" className="w-20 p-4 bg-blue-900 text-white rounded-xl text-center font-black text-sm shadow-xl" value={opt.points} onChange={e => {
-                                   const next = [...(form.options || [])];
-                                   next[idx].points = parseInt(e.target.value) || 0;
+                                   const next = ensureArray(form.options).map((o, i) => 
+                                     i === idx ? { ...o, points: parseInt(e.target.value) || 0 } : o
+                                   );
                                    setForm({...form, options: next});
                                 }} />
                               </div>
                            )}
-                           <button onClick={() => { const next = [...(form.options || [])]; next.splice(idx, 1); setForm({...form, options: next}); }} className="p-3 bg-red-50 text-red-300 rounded-full hover:bg-red-500 hover:text-white transition-all">✕</button>
+                           <button onClick={() => { 
+                             const next = ensureArray(form.options).filter((_, i) => i !== idx); 
+                             setForm({...form, options: next}); 
+                           }} className="p-3 bg-red-50 text-red-300 rounded-full hover:bg-red-500 hover:text-white transition-all">✕</button>
                         </div>
                      </div>
                    );
                  })}
                  <button onClick={() => {
-                   const current = form.options || [];
-                   const nextId = String.fromCharCode(97 + current.length);
+                   const current = ensureArray(form.options);
+                   const usedIds = current.map(o => o.id);
+                   let nextCharCode = 97; // 'a'
+                   while (usedIds.includes(String.fromCharCode(nextCharCode))) {
+                     nextCharCode++;
+                   }
+                   const nextId = String.fromCharCode(nextCharCode);
                    setForm({...form, options: [...current, { id: nextId, text: '', points: 0 }]});
                  }} className="w-full py-5 border-4 border-dashed border-slate-200 text-slate-300 font-black text-[11px] uppercase rounded-[2.5rem] hover:border-blue-200 hover:text-blue-500 transition-all">+ TAMBAH OPSI JAWABAN</button>
                </div>
@@ -176,13 +196,14 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
              {form.type === 'table' && (
                <div className="space-y-6">
-                  {form.statements?.map((st, idx) => (
-                    <div key={idx} className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-100 shadow-sm space-y-4">
+                  {ensureArray(form.statements).map((st, idx) => (
+                    <div key={st.id || idx} className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-100 shadow-sm space-y-4">
                        <div className="flex flex-col md:flex-row gap-6 items-start">
                           <div className="flex-1 w-full space-y-3">
                              <textarea className="w-full p-4 bg-slate-50 border rounded-2xl text-[11px] font-semibold outline-none min-h-[60px]" value={st.text} onChange={e => {
-                                const next = [...(form.statements || [])];
-                                next[idx].text = e.target.value;
+                                const next = ensureArray(form.statements).map((s, i) => 
+                                  i === idx ? { ...s, text: e.target.value } : s
+                                );
                                 setForm({...form, statements: next});
                              }} placeholder="Teks pernyataan baris..." />
                              <div className="p-3 bg-white/50 border border-slate-100 rounded-xl">
@@ -192,10 +213,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                           <div className="flex flex-col gap-1 shrink-0 w-full md:w-auto">
                              <label className="text-[8px] font-black text-slate-400 uppercase mb-1 text-center">Kunci Baris</label>
                              <div className="flex gap-1">
-                               {form.tableOptions?.map(to => (
+                               {ensureArray(form.tableOptions).map(to => (
                                  <button key={to} onClick={() => {
-                                   const next = [...(form.statements || [])];
-                                   next[idx].correctAnswer = to;
+                                   const next = ensureArray(form.statements).map((s, i) => 
+                                     i === idx ? { ...s, correctAnswer: to } : s
+                                   );
                                    setForm({...form, statements: next});
                                  }} className={`flex-1 px-4 py-3 rounded-xl text-[9px] font-black uppercase border transition-all ${st.correctAnswer === to ? 'bg-blue-900 text-white shadow-md border-blue-950' : 'bg-slate-50 text-slate-300'}`}>{to}</button>
                                ))}
@@ -205,17 +227,21 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                             <div className="flex flex-col items-center">
                                <label className="text-[8px] font-black text-slate-400 uppercase mb-1">Poin</label>
                                <input type="number" className="w-20 p-4 bg-blue-900 text-white rounded-xl text-center font-black text-sm shadow-xl" value={st.points} onChange={e => {
-                                  const next = [...(form.statements || [])];
-                                  next[idx].points = parseInt(e.target.value) || 0;
+                                  const next = ensureArray(form.statements).map((s, i) => 
+                                    i === idx ? { ...s, points: parseInt(e.target.value) || 0 } : s
+                                  );
                                   setForm({...form, statements: next});
                                }} />
                             </div>
                           )}
-                          <button onClick={() => { const next = [...(form.statements || [])]; next.splice(idx, 1); setForm({...form, statements: next}); }} className="p-3 bg-red-50 text-red-300 rounded-full hover:bg-red-500 hover:text-white transition-all">✕</button>
+                          <button onClick={() => { 
+                            const next = ensureArray(form.statements).filter((_, i) => i !== idx); 
+                            setForm({...form, statements: next}); 
+                          }} className="p-3 bg-red-50 text-red-300 rounded-full hover:bg-red-500 hover:text-white transition-all">✕</button>
                        </div>
                     </div>
                   ))}
-                  <button onClick={() => setForm({...form, statements: [...(form.statements || []), { id: Date.now().toString(), text: '', points: 5, correctAnswer: form.tableOptions?.[0] || 'BENAR' }]})} className="w-full py-5 border-4 border-dashed border-slate-200 text-slate-300 font-black text-[11px] uppercase rounded-[2.5rem] hover:border-blue-200 hover:text-blue-500 transition-all">+ TAMBAH BARIS PERNYATAAN</button>
+                  <button onClick={() => setForm({...form, statements: [...ensureArray(form.statements), { id: Date.now().toString(), text: '', points: 5, correctAnswer: ensureArray(form.tableOptions)?.[0] || 'BENAR' }]})} className="w-full py-5 border-4 border-dashed border-slate-200 text-slate-300 font-black text-[11px] uppercase rounded-[2.5rem] hover:border-blue-200 hover:text-blue-500 transition-all">+ TAMBAH BARIS PERNYATAAN</button>
                </div>
              )}
           </div>

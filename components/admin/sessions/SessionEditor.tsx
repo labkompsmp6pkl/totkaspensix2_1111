@@ -21,7 +21,7 @@ const SessionEditor: React.FC<SessionEditorProps> = ({
   cleanupTeacherAssignments, getTeacherAssignment, toggleTeacherSelection, toggleTeacherClass
 }) => {
   return (
-    <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[3500] flex items-center justify-center p-4 pointer-events-auto">
+    <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4 pointer-events-auto">
        <div className="bg-white w-full max-w-4xl rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[92vh] space-y-8 animate-in zoom-in-95 border-4 border-white relative">
           <div className="flex justify-between items-center">
              <h3 className="text-lg font-black uppercase text-blue-900 italic tracking-tighter">Konfigurasi Sesi Ujian</h3>
