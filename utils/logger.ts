@@ -1,4 +1,6 @@
 
+import { API_BASE_URL } from '../utils';
+
 /**
  * Utility to log errors to the remote server
  */
@@ -21,8 +23,8 @@ Message: ${errorData.message}
 Stack: ${errorData.stack || 'N/A'}
 --------------------------------------------------\n`;
 
-    // Send to the local API endpoint
-    await fetch('/api.php', {
+    // Send to the remote API endpoint
+    await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -57,7 +59,7 @@ UserAgent: ${eventData.userAgent}
 Details: ${JSON.stringify(eventData.details)}
 --------------------------------------------------\n`;
 
-    await fetch('/api.php', {
+    await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

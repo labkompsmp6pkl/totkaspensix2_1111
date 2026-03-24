@@ -1,7 +1,5 @@
-// Gunakan origin saat ini untuk API agar sinkron antara frontend dan backend di berbagai environment
-export const API_BASE_URL = (typeof window !== 'undefined') 
-  ? `${window.location.origin}/api.php` 
-  : "https://totka.smpn6pekalongan.org/api.php";
+// Paksa menggunakan domain .org agar data selalu sinkron dengan server utama
+export const API_BASE_URL = "https://totka.smpn6pekalongan.org/api.php";
 
 /**
  * Robust Date Parsing
