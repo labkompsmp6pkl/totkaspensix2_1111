@@ -46,6 +46,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // States untuk Formulir
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState<string | number | null>(null);
+
   const subjects = ['Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'Informatika', 'TKA Umum'];
   const initialQuestionForm: Partial<Question> = {
     subject: subjects[0], group_ids: activeGroupId ? [activeGroupId] : [], text: '', type: 'single', 
@@ -110,30 +111,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, []);
 
   const handleAddAction = () => {
-    if (activeTab === 'SOAL') {
-      setQuestionForm(initialQuestionForm);
-      setEditingQuestionId(null);
-      setShowQuestionForm(true);
+    if (activeTab === 'SOAL') { 
+      setQuestionForm(initialQuestionForm); 
+      setEditingQuestionId(null); 
+      setShowQuestionForm(true); 
     } else if (activeTab === 'SESI') {
-      setSessionForm({
-        group_name: '', group_code: '', duration_minutes: 60, extra_time_minutes: 0, is_shuffled: 1, target_classes: [], teacher_ids: []
-      });
+      setSessionForm({ group_name: '', group_code: '', duration_minutes: 60, extra_time_minutes: 0, is_shuffled: 1, target_classes: [], teacher_ids: [] });
       setEditingSessionId(null);
       setShowSessionForm(true);
     } else if (activeTab === 'PENGGUNA') {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
+      const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
       const academicYear = month >= 7 ? `${year}/${year + 1}` : `${year - 1}/${year}`;
-      
-      setUserForm({ 
-        name: '', 
-        role: UserRole.STUDENT, 
-        username: '', 
-        password: '', 
-        kelas: '', 
-        tahun_ajaran: academicYear 
-      });
+      setUserForm({ name: '', role: UserRole.STUDENT, username: '', password: '', kelas: '', tahun_ajaran: academicYear });
     }
   };
 
