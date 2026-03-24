@@ -127,10 +127,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="w-full min-h-screen bg-slate-100 flex flex-col items-center">
+    <div className="w-full min-h-screen bg-slate-50 flex flex-col items-center">
       
-      {/* 1. NAVBAR FIXED - DENGAN Z-INDEX TINGGI */}
-      <div ref={headerRef} className="fixed top-0 left-0 right-0 z-[1000] bg-white shadow-xl border-b border-slate-200">
+      {/* PERSISTENT FIXED NAVBAR */}
+      <div ref={headerRef} className="fixed top-0 left-0 right-0 z-[150] bg-white shadow-md border-b border-slate-200">
         <div className="w-full">
           <AdminHeader 
             activeTab={activeTab} 
@@ -142,7 +142,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             isLoadingLogs={isLoadingLogs} 
           />
           {activeTab !== 'MENU' && (
-            <div className="bg-white pb-5"> 
+            <div className="bg-white">
               <AdminTabs 
                 activeTab={activeTab} 
                 setActiveTab={setActiveTab} 
@@ -153,29 +153,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* 2. GHOST SPACER (PENGGANJAL) - INI KUNCINYA */}
-      {/* Elemen ini tidak terlihat, tapi tingginya menyesuaikan Navbar. 
-          Gunanya mendorong main content agar tidak pernah naik ke bawah Navbar. */}
-      <div style={{ height: `${headerHeight}px` }} className="w-full shrink-0 transition-all duration-200" />
-
-      {/* 3. AREA KONTEN UTAMA */}
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-10 pb-20 relative z-0">
+      {/* Main Container */}
+      <main 
+        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pb-12"
+        style={{ paddingTop: `${headerHeight + 20}px` }}
+      >
         <div className="w-full">
           
           {activeTab === 'MENU' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <AdminMenu setActiveTab={setActiveTab} />
-            </div>
+            <AdminMenu setActiveTab={setActiveTab} />
           )}
 
           {activeTab === 'SOAL' && (
-            <div className="w-full bg-white rounded-[3.5rem] shadow-2xl border border-slate-100 p-8 sm:p-12 min-h-[80vh] animate-in zoom-in-95">
-              {/* Judul Internal agar tampilan lebih luas */}
-              <div className="mb-10 border-b border-slate-50 pb-6">
-                <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Manajemen Bank Soal</h2>
-                <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-2">Total {questions.length} butir soal tersedia dalam database</p>
-              </div>
-
+            <div className="w-full max-w-7xl mx-auto bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-6 sm:p-10 min-h-[70vh]">
               <QuestionManager 
                 questions={questions} 
                 groups={groups} 
@@ -194,9 +184,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* Render Tab Lainnya secara kondisional ... */}
           {activeTab === 'SESI' && (
-            <div className="w-full bg-white rounded-[3.5rem] shadow-2xl p-8 sm:p-12 min-h-[70vh]">
+            <div className="w-full max-w-7xl mx-auto bg-white rounded-[3rem] shadow-xl border border-slate-100 p-6 sm:p-10">
                <SessionManager 
                  groups={groups} 
                  questions={questions} 
@@ -216,7 +205,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
           {activeTab === 'PENGGUNA' && (
-            <div className="w-full bg-white rounded-[3.5rem] shadow-2xl p-8 sm:p-12 min-h-[70vh]">
+            <div className="w-full max-w-7xl mx-auto bg-white rounded-[3rem] shadow-xl border border-slate-100 p-6 sm:p-10">
                <UserManager 
                  users={users} 
                  refreshData={onRefresh} 
@@ -240,10 +229,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab !== 'MENU' && (
         <button
           onClick={onRefresh}
-          className="fixed bottom-10 right-10 z-[1100] p-5 bg-indigo-600 text-white rounded-[2rem] shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center group"
+          className="fixed bottom-6 right-6 z-[140] p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center"
           title="Sinkronisasi Data"
         >
-          <RefreshCw className={`w-7 h-7 ${isLoadingLogs ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-700'}`} />
+          <RefreshCw className={`w-6 h-6 ${isLoadingLogs ? 'animate-spin' : ''}`} />
         </button>
       )}
     </div>
