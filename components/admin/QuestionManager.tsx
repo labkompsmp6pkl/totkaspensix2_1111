@@ -22,12 +22,13 @@ interface QuestionManagerProps {
   setEditingId: (id: string | number | null) => void;
   form: Partial<Question>;
   setForm: React.Dispatch<React.SetStateAction<Partial<Question>>>;
-  initialForm: Partial<Question>;
+  // initialForm tidak lagi digunakan dari props untuk mencegah mutasi state induk
+  initialForm?: Partial<Question>; 
 }
 
 const QuestionManager: React.FC<QuestionManagerProps> = ({ 
   questions, groups, refreshData, API_BASE_URL, activeGroupId, currentUser,
-  showForm, setShowForm, editingId, setEditingId, form, setForm, initialForm
+  showForm, setShowForm, editingId, setEditingId, form, setForm
 }) => {
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -50,6 +51,27 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
 
   const subjects = ['Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'Informatika', 'TKA Umum'];
 
+  // PERBAIKAN: Blueprint Form Baru yang 100% independen
+  const createNewQuestionForm = (): Partial<Question> => ({
+    subject: subjects[0], 
+    group_ids: activeGroupId ? [activeGroupId] : [], 
+    text: '', 
+    type: 'single', 
+    scoring_mode: 'all_or_nothing', 
+    points: 10, 
+    sort_order: 1, 
+    options: [
+      { id: 'a', text: '', points: 0 }, 
+      { id: 'b', text: '', points: 0 }, 
+      { id: 'c', text: '', points: 0 }, 
+      { id: 'd', text: '', points: 0 }
+    ],
+    correctOptionId: 'a', 
+    correctOptionIds: [], 
+    tableOptions: ['BENAR', 'SALAH'],
+    statements: []
+  });
+
   const groupPointsMap = useMemo(() => {
     const map: Record<number, number> = {};
     groups.forEach(g => {
@@ -62,14 +84,24 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const handleEdit = React.useCallback((q: any) => {
     console.log("Editing question:", q.id);
     setEditingId(q.id);
-    setForm({ ...q, group_ids: ensureArray(q.group_ids).map(Number), scoring_mode: q.scoring_mode || 'all_or_nothing', points: Number(q.points), tableOptions: q.tableOptions?.length > 0 ? q.tableOptions : ['BENAR', 'SALAH'] });
+    // Pastikan copy form bersih
+    setForm({ 
+      ...q, 
+      group_ids: ensureArray(q.group_ids).map(Number), 
+      scoring_mode: q.scoring_mode || 'all_or_nothing', 
+      points: Number(q.points) || 0, 
+      tableOptions: q.tableOptions?.length > 0 ? q.tableOptions : ['BENAR', 'SALAH'] 
+    });
     setShowForm(true);
   }, [setEditingId, setForm, setShowForm]);
 
   const handleModeChange = React.useCallback((newMode: ScoringMode) => {
     setForm((prev: Partial<Question>) => {
       if (newMode === 'all_or_nothing') return { ...prev, scoring_mode: 'all_or_nothing' };
-      const updatedOptions = ensureArray(prev.options).map(opt => ({ ...opt, points: (prev.type === 'single' ? opt.id === prev.correctOptionId : ensureArray(prev.correctOptionIds).includes(opt.id)) ? (prev.points || 10) : 0 }));
+      const updatedOptions = ensureArray(prev.options).map(opt => ({ 
+        ...opt, 
+        points: (prev.type === 'single' ? opt.id === prev.correctOptionId : ensureArray(prev.correctOptionIds).includes(opt.id)) ? (prev.points || 10) : 0 
+      }));
       return { ...prev, scoring_mode: 'partial', options: updatedOptions };
     });
   }, [setForm]);
@@ -84,23 +116,27 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
 
   const handleSave = React.useCallback(async () => {
     setIsSaving(true);
-    await QuestionController.save({ ...form, id: editingId, points: form.scoring_mode === 'all_or_nothing' ? form.points : autoCalculatedPoints, created_by: currentUser.id });
-    setShowForm(false); refreshData(); setIsSaving(false);
+    await QuestionController.save({ 
+      ...form, 
+      id: editingId, 
+      points: form.scoring_mode === 'all_or_nothing' ? form.points : autoCalculatedPoints, 
+      created_by: currentUser.id 
+    });
+    setShowForm(false); 
+    refreshData(); 
+    setIsSaving(false);
   }, [form, editingId, autoCalculatedPoints, currentUser.id, setShowForm, refreshData]);
 
   const handleClose = React.useCallback(() => {
     setShowForm(false);
   }, [setShowForm]);
 
-  // MODIFIKASI: Pencarian sekarang mendukung Nomor Soal (Sort Order) dan ID
   const filteredAndSortedQuestions = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     
     let result = questions.filter(q => {
       const textMatch = (q.text || "").toLowerCase().includes(query);
       const subjectMatch = (q.subject || "").toLowerCase().includes(query);
-      
-      // Pencarian berdasarkan nomor urut (Nomor Soal) atau ID
       const orderMatch = q.sort_order ? String(q.sort_order).includes(query) : false;
       const idMatch = q.id ? String(q.id).includes(query) : false;
 
@@ -121,17 +157,14 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const paginatedQuestions = filteredAndSortedQuestions.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    /* PERBAIKAN: Menambahkan pt-10 (Padding Top) ekstra sebagai buffer keamanan 
-       agar saat Navbar "membengkak/gemuk", searchbar tidak akan tertutup.
-       Juga menambahkan scroll-mt (Scroll Margin Top) agar saat pindah page, posisi berhenti tepat. */
     <div className="w-full space-y-8 flex flex-col pt-10 sm:pt-14 scroll-mt-24">
       
       <SearchAndAddBar 
         onSearch={(q) => setSearchQuery(q)} 
         onAdd={() => { 
-          // Deep copy to prevent mutation of initialForm
-          const freshForm = JSON.parse(JSON.stringify(initialForm));
-          setForm(freshForm); 
+          // PERBAIKAN: Gunakan fungsi createNewQuestionForm() lokal
+          // Ini menjamin form yang dirender 100% bebas dari koneksi memori luar
+          setForm(createNewQuestionForm()); 
           setEditingId(null); 
           setShowForm(true); 
         }}
@@ -198,7 +231,19 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
       </div>
 
       {previewQuestion && <QuestionPreview question={previewQuestion} onClose={() => setPreviewQuestion(null)} />}
-      {showForm && <QuestionEditor form={form} setForm={setForm} groups={groups} subjects={subjects} autoCalculatedPoints={autoCalculatedPoints} isSaving={isSaving} onSave={handleSave} onClose={handleClose} handleModeChange={handleModeChange} />}
+      {showForm && (
+        <QuestionEditor 
+          form={form} 
+          setForm={setForm} 
+          groups={groups} 
+          subjects={subjects} 
+          autoCalculatedPoints={autoCalculatedPoints} 
+          isSaving={isSaving} 
+          onSave={handleSave} 
+          onClose={handleClose} 
+          handleModeChange={handleModeChange} 
+        />
+      )}
       {deleteConfirmId !== null && <DeleteConfirmation onCancel={() => setDeleteConfirmId(null)} onConfirm={async () => {
           try { 
             await QuestionController.delete(deleteConfirmId); 
