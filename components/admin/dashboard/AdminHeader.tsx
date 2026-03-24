@@ -49,14 +49,17 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
         <div className="flex items-center gap-6">
           <button 
             onClick={() => setActiveTab('MENU')}
-            className="p-5 bg-indigo-600 text-white rounded-3xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95"
+            className="group relative p-5 bg-indigo-600 text-white rounded-[2rem] hover:bg-indigo-700 transition-all shadow-xl active:scale-95 overflow-hidden"
           >
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
             <LayoutDashboard className="w-8 h-8" />
           </button>
-          <div className="relative">
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tighter text-slate-900 uppercase leading-none">ADMIN PANEL</h1>
-            <div className="absolute -bottom-2 left-0 w-full h-1 bg-blue-500 rounded-full"></div>
-            <p className="text-slate-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] mt-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="w-2.5 h-10 bg-indigo-600 rounded-full"></div>
+              <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-slate-900 uppercase italic leading-none">ADMIN PANEL</h1>
+            </div>
+            <p className="text-slate-400 text-[11px] sm:text-[12px] font-black uppercase tracking-[0.25em] mt-2 ml-5">
               KELOLA SOAL, SESI UJIAN, DAN DATA PENGGUNA SISTEM.
             </p>
           </div>
@@ -65,27 +68,27 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
         <div className="flex items-center gap-4 sm:gap-6">
           <button 
             onClick={handleAddAction}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full font-bold uppercase text-xs shadow-lg hover:bg-blue-700 active:scale-95 transition-all"
+            className="flex items-center gap-3 px-8 py-4.5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs shadow-xl hover:bg-blue-700 active:scale-95 transition-all tracking-[0.15em] border-b-4 border-blue-800"
           >
             <PlusCircle className="w-5 h-5" />
             {activeTab === 'SOAL' ? 'SOAL BARU' : activeTab === 'SESI' ? 'SESI BARU' : activeTab === 'PENGGUNA' ? 'USER BARU' : 'TAMBAH'}
           </button>
           
-          <div className="h-10 w-[1px] bg-slate-200 hidden md:block"></div>
+          <div className="h-14 w-[1px] bg-slate-200 hidden md:block"></div>
 
           <div className="flex items-center gap-4">
             {lastSync && (
               <div className="text-right hidden lg:block">
-                <p className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">SINKRONISASI TERAKHIR</p>
-                <p className="text-[13px] font-mono font-bold text-indigo-600">{lastSync.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">SINKRONISASI TERAKHIR</p>
+                <p className="text-[14px] font-mono font-black text-indigo-600">{lastSync.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
               </div>
             )}
             <button
               onClick={onRefresh}
-              className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-white transition-all shadow-sm active:scale-95"
+              className="p-4.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-white hover:border-indigo-200 transition-all shadow-sm active:scale-95 group"
               title="Refresh Data"
             >
-              <RefreshCw className={`w-5 h-5 ${isLoadingLogs ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-6 h-6 ${isLoadingLogs ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
             </button>
           </div>
         </div>

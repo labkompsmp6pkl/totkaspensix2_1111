@@ -68,24 +68,8 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const handleModeChange = (newMode: ScoringMode) => {
     setForm((prev: Partial<Question>) => {
       if (newMode === 'all_or_nothing') return { ...prev, scoring_mode: 'all_or_nothing' };
-      
-      // Saat pindah ke partial, inisialisasi poin opsi/statement jika belum ada
-      const updatedOptions = ensureArray(prev.options).map(opt => ({ 
-        ...opt, 
-        points: (prev.type === 'single' ? opt.id === prev.correctOptionId : ensureArray(prev.correctOptionIds).includes(opt.id)) ? (prev.points || 10) : 0 
-      }));
-      
-      const updatedStatements = ensureArray(prev.statements).map(st => ({
-        ...st,
-        points: prev.points || 10
-      }));
-
-      return { 
-        ...prev, 
-        scoring_mode: 'partial', 
-        options: updatedOptions,
-        statements: updatedStatements
-      };
+      const updatedOptions = ensureArray(prev.options).map(opt => ({ ...opt, points: (prev.type === 'single' ? opt.id === prev.correctOptionId : ensureArray(prev.correctOptionIds).includes(opt.id)) ? (prev.points || 10) : 0 }));
+      return { ...prev, scoring_mode: 'partial', options: updatedOptions };
     });
   };
 
