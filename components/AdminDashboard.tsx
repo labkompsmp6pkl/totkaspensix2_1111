@@ -56,21 +56,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   groups: realGroups, activeGroupId, examCode, setExamCode, lastSync, onRefresh, onLogout,
   activeTab, setActiveTab
 }) => {
-  const questions = realQuestions.length > 0 ? realQuestions : dummyQuestions;
-  const groups = realGroups.length > 0 ? realGroups : dummyGroups;
-  const users = realUsers.length > 0 ? realUsers : [...realUsers, ...dummyUsers];
-
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [accessLogs, setAccessLogs] = useState<any[]>([]);
   const [sessionLogs, setSessionLogs] = useState<any[]>([]);
-  
-  // State untuk kontrol Sidebar Mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // States untuk Formulir Manager
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState<string | number | null>(null);
   const [questionForm, setQuestionForm] = useState<Partial<Question>>({});
+
+  const questions = realQuestions.length > 0 ? realQuestions : dummyQuestions;
+  const groups = realGroups.length > 0 ? realGroups : dummyGroups;
+  const users = realUsers.length > 0 ? realUsers : [...realUsers, ...dummyUsers];
 
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
@@ -98,9 +94,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, []);
 
   const handleAddAction = () => {
-    console.log("[AdminDashboard] handleAddAction called. activeTab:", activeTab);
     if (activeTab === 'SOAL') { 
-      console.log("[AdminDashboard] Setting question form to initial state (deep copy)");
       const freshForm = JSON.parse(JSON.stringify(initialQuestionForm));
       setQuestionForm(freshForm);
       setEditingQuestionId(null);

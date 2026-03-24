@@ -16,14 +16,9 @@ interface QuestionEditorProps {
   handleModeChange: (mode: ScoringMode) => void;
 }
 
-const QuestionEditor: React.FC<QuestionEditorProps> = ({
+const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(({
   form, setForm, groups, subjects, autoCalculatedPoints, isSaving, onSave, onClose, handleModeChange
 }) => {
-  React.useEffect(() => {
-    console.log("[QuestionEditor] Mounted");
-    return () => console.log("[QuestionEditor] Unmounted");
-  }, []);
-  console.log("[QuestionEditor] Rendered. form.id:", form.id, "form.type:", form.type);
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[9999] flex items-center justify-center p-2 sm:p-6 overflow-hidden pointer-events-auto">
        <div className="bg-white w-full max-w-6xl rounded-[3rem] sm:rounded-[4rem] p-6 sm:p-12 shadow-2xl overflow-y-auto max-h-[95vh] space-y-8 animate-in zoom-in-95 border-8 border-white relative">
@@ -164,13 +159,13 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                            </div>
                            {form.scoring_mode === 'partial' && (
                               <div className="flex flex-col items-center shrink-0 w-full md:w-auto">
-                                <label className="text-[8px] font-black text-slate-400 uppercase mb-1">Poin</label>
-                                <input type="number" className="w-20 p-4 bg-blue-900 text-white rounded-xl text-center font-black text-sm shadow-xl" value={opt.points} onChange={e => {
-                                   const next = ensureArray(form.options).map((o, i) => 
-                                     i === idx ? { ...o, points: parseInt(e.target.value) || 0 } : o
-                                   );
-                                   setForm({...form, options: next});
-                                }} />
+                                 <label className="text-[8px] font-black text-slate-400 uppercase mb-1">Poin</label>
+                                 <input type="number" className="w-20 p-4 bg-blue-900 text-white rounded-xl text-center font-black text-sm shadow-xl" value={opt.points} onChange={e => {
+                                    const next = ensureArray(form.options).map((o, i) => 
+                                      i === idx ? { ...o, points: parseInt(e.target.value) || 0 } : o
+                                    );
+                                    setForm({...form, options: next});
+                                 }} />
                               </div>
                            )}
                            <button onClick={() => { 
@@ -255,6 +250,6 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
        </div>
     </div>
   );
-};
+});
 
 export default QuestionEditor;

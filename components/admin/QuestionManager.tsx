@@ -29,7 +29,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   questions, groups, refreshData, API_BASE_URL, activeGroupId, currentUser,
   showForm, setShowForm, editingId, setEditingId, form, setForm, initialForm
 }) => {
-  console.log("[QuestionManager] Rendered. showForm:", showForm, "editingId:", editingId);
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,27 +66,31 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
     setShowForm(true);
   }, [setEditingId, setForm, setShowForm]);
 
-  const handleModeChange = (newMode: ScoringMode) => {
+  const handleModeChange = React.useCallback((newMode: ScoringMode) => {
     setForm((prev: Partial<Question>) => {
       if (newMode === 'all_or_nothing') return { ...prev, scoring_mode: 'all_or_nothing' };
       const updatedOptions = ensureArray(prev.options).map(opt => ({ ...opt, points: (prev.type === 'single' ? opt.id === prev.correctOptionId : ensureArray(prev.correctOptionIds).includes(opt.id)) ? (prev.points || 10) : 0 }));
       return { ...prev, scoring_mode: 'partial', options: updatedOptions };
     });
-  };
+  }, [setForm]);
 
   const autoCalculatedPoints = useMemo(() => {
     if (form.scoring_mode === 'all_or_nothing') return form.points || 0;
-    if (form.type === 'single') return Math.max(...(form.options?.map(o => Number(o.points) || 0) || [0]));
-    if (form.type === 'multiple') return (form.options?.reduce((acc, o) => acc + (Number(o.points) || 0), 0) || 0);
-    if (form.type === 'table') return (form.statements?.reduce((acc, s) => acc + (Number(s.points) || 0), 0) || 0);
+    if (form.type === 'single') return Math.max(...(ensureArray(form.options).map(o => Number(o.points) || 0) || [0]));
+    if (form.type === 'multiple') return (ensureArray(form.options).reduce((acc, o) => acc + (Number(o.points) || 0), 0) || 0);
+    if (form.type === 'table') return (ensureArray(form.statements).reduce((acc, s) => acc + (Number(s.points) || 0), 0) || 0);
     return 0;
-  }, [form]);
+  }, [form.scoring_mode, form.type, form.options, form.statements, form.points]);
 
-  const handleSave = async () => {
+  const handleSave = React.useCallback(async () => {
     setIsSaving(true);
     await QuestionController.save({ ...form, id: editingId, points: form.scoring_mode === 'all_or_nothing' ? form.points : autoCalculatedPoints, created_by: currentUser.id });
     setShowForm(false); refreshData(); setIsSaving(false);
-  };
+  }, [form, editingId, autoCalculatedPoints, currentUser.id, setShowForm, refreshData]);
+
+  const handleClose = React.useCallback(() => {
+    setShowForm(false);
+  }, [setShowForm]);
 
   // MODIFIKASI: Pencarian sekarang mendukung Nomor Soal (Sort Order) dan ID
   const filteredAndSortedQuestions = useMemo(() => {
@@ -195,7 +198,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
       </div>
 
       {previewQuestion && <QuestionPreview question={previewQuestion} onClose={() => setPreviewQuestion(null)} />}
-      {showForm && <QuestionEditor form={form} setForm={setForm} groups={groups} subjects={subjects} autoCalculatedPoints={autoCalculatedPoints} isSaving={isSaving} onSave={handleSave} onClose={() => setShowForm(false)} handleModeChange={handleModeChange} />}
+      {showForm && <QuestionEditor form={form} setForm={setForm} groups={groups} subjects={subjects} autoCalculatedPoints={autoCalculatedPoints} isSaving={isSaving} onSave={handleSave} onClose={handleClose} handleModeChange={handleModeChange} />}
       {deleteConfirmId !== null && <DeleteConfirmation onCancel={() => setDeleteConfirmId(null)} onConfirm={async () => {
           try { 
             await QuestionController.delete(deleteConfirmId); 

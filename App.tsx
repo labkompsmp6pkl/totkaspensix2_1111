@@ -70,11 +70,21 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const savedUser = localStorage.getItem('tka_user');
-    if (savedUser) setCurrentUser(JSON.parse(savedUser));
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setCurrentUser(parsedUser);
+      } catch (e) {
+        console.error("Error parsing saved user:", e);
+      }
+    }
+  }, []); // Run only once on mount
+
+  useEffect(() => {
     refreshData();
     const interval = setInterval(refreshData, 30000);
     return () => clearInterval(interval);
-  }, [refreshData]);
+  }, [refreshData]); // Depends on refreshData, which is stable unless currentUser changes once on mount
 
   useEffect(() => {
     // Jalankan migrasi database sekali saat aplikasi dimuat
