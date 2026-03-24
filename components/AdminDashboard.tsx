@@ -123,7 +123,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     // Memastikan kontainer full-height dan tersembunyi scrollbar utamanya
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans text-slate-900">
+    <div className="flex h-[100dvh] w-full bg-slate-50 overflow-hidden font-sans text-slate-900">
       
       {/* ------------------------------------------- */}
       {/* SIDEBAR (KIRI) - NAVIGASI DAN INFO SEKOLAH  */}
@@ -257,7 +257,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* CONTAINER SCROLL INDEPENDEN */}
         {/* Di sinilah komponen konten dirender. Karena memiliki 'overflow-y-auto', area ini 
             memiliki scrollbar miliknya sendiri, tidak akan pernah menabrak header/sidebar. */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-10 custom-scrollbar min-h-0" id="main-scroll-container">
+        <div className="flex-1 force-scroll-container p-4 sm:p-10 custom-scrollbar" id="main-scroll-container">
           <div className="max-w-[1600px] mx-auto pb-20">
             
             {activeTab === 'MENU' && (

@@ -227,42 +227,42 @@ const App: React.FC = () => {
   return (
     <MathJaxContext>
       <div className="min-h-screen bg-slate-50 font-sans w-full flex flex-col relative">
-        {currentUser.role !== UserRole.ADMIN && (
-          <Navbar user={currentUser} onLogout={handleLogout} lastSync={lastSync} />
+        {currentUser.role !== UserRole.ADMIN ? (
+          <>
+            <Navbar user={currentUser} onLogout={handleLogout} lastSync={lastSync} />
+            <main className="flex-1 w-full pb-12">
+                {currentUser.role === UserRole.TEACHER && (
+                  <TeacherDashboard scores={scores} groups={groups} questions={questions} users={users} activeGroupId={activeGroupId} API_BASE_URL={API_BASE_URL} />
+                )}
+                {currentUser.role === UserRole.STUDENT && (
+                  <StudentDashboard 
+                    currentUser={currentUser} 
+                    questions={questions} 
+                    startExam={startExam} 
+                    scores={scores} 
+                    onRefresh={refreshData} 
+                  />
+                )}
+            </main>
+          </>
+        ) : (
+          <AdminDashboard 
+            currentUser={currentUser} 
+            questions={questions} 
+            setQuestions={setQuestions} 
+            users={users} 
+            setUsers={setUsers} 
+            groups={groups} 
+            activeGroupId={activeGroupId} 
+            examCode={examCode} 
+            setExamCode={setExamCode} 
+            onRefresh={refreshData} 
+            onLogout={handleLogout}
+            lastSync={lastSync}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
         )}
-        <main className="flex-1 w-full pb-12">
-            {currentUser.role === UserRole.ADMIN && (
-              <AdminDashboard 
-                currentUser={currentUser} 
-                questions={questions} 
-                setQuestions={setQuestions} 
-                users={users} 
-                setUsers={setUsers} 
-                groups={groups} 
-                activeGroupId={activeGroupId} 
-                examCode={examCode} 
-                setExamCode={setExamCode} 
-                onRefresh={refreshData} 
-                onLogout={handleLogout}
-                lastSync={lastSync}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-              />
-            )}
-            {currentUser.role === UserRole.TEACHER && (
-              <TeacherDashboard scores={scores} groups={groups} questions={questions} users={users} activeGroupId={activeGroupId} API_BASE_URL={API_BASE_URL} />
-            )}
-            {currentUser.role === UserRole.STUDENT && (
-              // Fixed: removed non-existent props from StudentDashboard call to match its definition.
-              <StudentDashboard 
-                currentUser={currentUser} 
-                questions={questions} 
-                startExam={startExam} 
-                scores={scores} 
-                onRefresh={refreshData} 
-              />
-            )}
-        </main>
       </div>
     </MathJaxContext>
   );

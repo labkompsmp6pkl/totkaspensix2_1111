@@ -1,7 +1,7 @@
 // Gunakan origin saat ini untuk API agar sinkron antara frontend dan backend di berbagai environment
 export const API_BASE_URL = (typeof window !== 'undefined') 
   ? `${window.location.origin}/api.php` 
-  : "https://totka.smpn6pekalongan.org/api.php";
+  : "https://totka.smpn6pekalongan.sch.id/api.php";
 
 /**
  * Robust Date Parsing
@@ -51,10 +51,10 @@ export const robustParse = (data: any) => {
   
   const cleanData = data.trim();
   
-  if (cleanData.startsWith('<!DOCTYPE') || cleanData.startsWith('<html')) {
+  if (cleanData.startsWith('<!DOCTYPE') || cleanData.startsWith('<html') || cleanData.includes('403 Forbidden')) {
     return { 
       success: false, 
-      message: "Akses Ditolak Firewall (403). Pastikan ModSecurity OFF." 
+      message: "Server Error (403/500). Periksa ModSecurity atau Izin File di Hosting." 
     };
   }
 

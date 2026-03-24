@@ -27,6 +27,16 @@ body {
   flex-direction: column;
 }
 
+/* Fix for frozen scrolling on some servers/browsers */
+.force-scroll-container {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
