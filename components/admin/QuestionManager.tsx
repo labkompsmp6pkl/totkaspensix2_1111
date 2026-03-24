@@ -60,6 +60,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   }, [groups, questions]);
 
   const handleEdit = React.useCallback((q: any) => {
+    console.log("Editing question:", q.id);
     setEditingId(q.id);
     setForm({ ...q, group_ids: ensureArray(q.group_ids).map(Number), scoring_mode: q.scoring_mode || 'all_or_nothing', points: Number(q.points), tableOptions: q.tableOptions?.length > 0 ? q.tableOptions : ['BENAR', 'SALAH'] });
     setShowForm(true);
@@ -119,7 +120,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
     /* PERBAIKAN: Menambahkan pt-10 (Padding Top) ekstra sebagai buffer keamanan 
        agar saat Navbar "membengkak/gemuk", searchbar tidak akan tertutup.
        Juga menambahkan scroll-mt (Scroll Margin Top) agar saat pindah page, posisi berhenti tepat. */
-    <div className="w-full space-y-8 flex flex-col h-full pt-10 sm:pt-14 scroll-mt-24">
+    <div className="w-full space-y-8 flex flex-col pt-10 sm:pt-14 scroll-mt-24">
       
       <SearchAndAddBar 
         onSearch={(q) => setSearchQuery(q)} 
@@ -151,7 +152,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
             groupPointsMap={groupPointsMap}
             onPreview={setPreviewQuestion}
             onEdit={handleEdit}
-            onDelete={setDeleteConfirmId}
+            onDelete={(id) => { console.log("Deleting question:", id); setDeleteConfirmId(id); }}
           />
 
           {totalPages > 1 && (
@@ -188,8 +189,15 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
 
       {previewQuestion && <QuestionPreview question={previewQuestion} onClose={() => setPreviewQuestion(null)} />}
       {showForm && <QuestionEditor form={form} setForm={setForm} groups={groups} subjects={subjects} autoCalculatedPoints={autoCalculatedPoints} isSaving={isSaving} onSave={handleSave} onClose={() => setShowForm(false)} handleModeChange={handleModeChange} />}
-      {deleteConfirmId && <DeleteConfirmation onCancel={() => setDeleteConfirmId(null)} onConfirm={async () => {
-          try { await fetch(`${API_BASE_URL}?action=delete_question&id=${deleteConfirmId}`, { method: 'DELETE' }); setDeleteConfirmId(null); refreshData(); } catch (error) { console.error("Gagal menghapus soal:", error); setDeleteConfirmId(null); }
+      {deleteConfirmId !== null && <DeleteConfirmation onCancel={() => setDeleteConfirmId(null)} onConfirm={async () => {
+          try { 
+            await QuestionController.delete(deleteConfirmId); 
+            setDeleteConfirmId(null); 
+            refreshData(); 
+          } catch (error) { 
+            console.error("Gagal menghapus soal:", error); 
+            setDeleteConfirmId(null); 
+          }
       }} />}
     </div>
   );

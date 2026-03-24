@@ -221,8 +221,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
           </div>
 
           <div className="flex gap-4 pt-10 border-t">
-             <button onClick={onClose} className="flex-1 py-6 bg-slate-100 rounded-[2rem] font-black uppercase text-[11px] text-slate-400 hover:bg-slate-200 transition-all">BATAL</button>
-             <button onClick={onSave} disabled={isSaving} className="flex-[2] py-6 bg-blue-900 text-white rounded-[2rem] font-black uppercase text-[12px] shadow-2xl border-b-8 border-blue-950 active:scale-95 transition-all tracking-[0.2em]">
+             <button onClick={() => { console.log("QuestionEditor: Batal clicked"); onClose(); }} className="flex-1 py-6 bg-slate-100 rounded-[2rem] font-black uppercase text-[11px] text-slate-400 hover:bg-slate-200 transition-all">BATAL</button>
+             <button onClick={() => { console.log("QuestionEditor: Simpan clicked"); onSave(); }} disabled={isSaving} className="flex-[2] py-6 bg-blue-900 text-white rounded-[2rem] font-black uppercase text-[12px] shadow-2xl border-b-8 border-blue-950 active:scale-95 transition-all tracking-[0.2em]">
                {isSaving ? '⏳ MENYIMPAN...' : 'SIMPAN KE BANK SOAL 🚀'}
              </button>
           </div>

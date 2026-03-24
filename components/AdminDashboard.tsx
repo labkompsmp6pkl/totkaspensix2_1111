@@ -51,6 +51,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // States untuk Formulir Manager
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState<string | number | null>(null);
+  const [questionForm, setQuestionForm] = useState<Partial<Question>>({});
+
+  const [showSessionForm, setShowSessionForm] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
+  const [sessionForm, setSessionForm] = useState<any>({});
+
+  const [userForm, setUserForm] = useState<Partial<User> | null>(null);
+
+  const initialQuestionForm: Partial<Question> = {
+    text: '',
+    type: 'single',
+    scoring_mode: 'all_or_nothing',
+    options: [
+      { id: 'a', text: '', points: 0 },
+      { id: 'b', text: '', points: 0 },
+      { id: 'c', text: '', points: 0 },
+      { id: 'd', text: '', points: 0 }
+    ],
+    correctOptionId: 'a',
+    points: 10,
+    subject: 'UMUM',
+    group_ids: []
+  };
 
   const fetchLogs = async () => {
     setIsLoadingLogs(true);
@@ -71,8 +94,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, []);
 
   const handleAddAction = () => {
-    if (activeTab === 'SOAL') { setShowQuestionForm(true); }
-    // Untuk Sesi dan Pengguna bisa dihandle di dalam komponennya masing-masing
+    if (activeTab === 'SOAL') { 
+      setQuestionForm(initialQuestionForm);
+      setEditingQuestionId(null);
+      setShowQuestionForm(true); 
+    }
+    if (activeTab === 'SESI') {
+      setSessionForm({
+        group_name: '', group_code: '', duration_minutes: 60, extra_time_minutes: 0, is_shuffled: 1, target_classes: [], teacher_ids: []
+      });
+      setEditingSessionId(null);
+      setShowSessionForm(true);
+    }
+    if (activeTab === 'PENGGUNA') {
+      setUserForm({ role: UserRole.STUDENT });
+    }
   };
 
   const navItems = [
@@ -241,20 +277,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   API_BASE_URL={API_BASE_URL} activeGroupId={activeGroupId} 
                   currentUser={currentUser} showForm={showQuestionForm} 
                   setShowForm={setShowQuestionForm} editingId={editingQuestionId} 
-                  setEditingId={setEditingQuestionId} form={{}} setForm={()=>{}} initialForm={{}}
+                  setEditingId={setEditingQuestionId} 
+                  form={questionForm} setForm={setQuestionForm} initialForm={initialQuestionForm}
                 />
               </div>
             )}
 
             {activeTab === 'SESI' && (
               <div className="w-full bg-white rounded-[2rem] sm:rounded-[3.5rem] shadow-xl border border-slate-200 p-6 sm:p-12 min-h-[70vh]">
-                <SessionManager groups={groups} questions={questions} users={users} examCode={examCode} activeGroupId={activeGroupId} refreshData={onRefresh} API_BASE_URL={API_BASE_URL} showForm={false} setShowForm={()=>{}} editingId={null} setEditingId={()=>{}} form={{}} setForm={()=>{}} />
+                <SessionManager 
+                  groups={groups} questions={questions} users={users} 
+                  examCode={examCode} activeGroupId={activeGroupId} 
+                  refreshData={onRefresh} API_BASE_URL={API_BASE_URL} 
+                  showForm={showSessionForm} setShowForm={setShowSessionForm} 
+                  editingId={editingSessionId} setEditingId={setEditingSessionId} 
+                  form={sessionForm} setForm={setSessionForm} 
+                />
               </div>
             )}
 
             {activeTab === 'PENGGUNA' && (
               <div className="w-full bg-white rounded-[2rem] sm:rounded-[3.5rem] shadow-xl border border-slate-200 p-6 sm:p-12 min-h-[70vh]">
-                <UserManager users={users} refreshData={onRefresh} API_BASE_URL={API_BASE_URL} accessLogs={accessLogs} sessionLogs={sessionLogs} scores={[]} userForm={null} setUserForm={()=>{}} />
+                <UserManager 
+                  users={users} refreshData={onRefresh} 
+                  API_BASE_URL={API_BASE_URL} accessLogs={accessLogs} 
+                  sessionLogs={sessionLogs} scores={[]} 
+                  userForm={userForm} setUserForm={setUserForm} 
+                />
               </div>
             )}
 

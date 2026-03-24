@@ -8,7 +8,7 @@ export class Database {
   private static getRawData() {
     const initial = {
       users: [
-        { id: '1', name: 'Administrator', role: 'ADMIN', username: 'admin', password: '123' }
+        { id: '1', name: 'Administrator', role: 'ADMIN', username: 'admin', password: 'kartiniraya06' }
       ],
       questions: [],
       groups: [],

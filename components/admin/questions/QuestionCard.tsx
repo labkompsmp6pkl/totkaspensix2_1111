@@ -120,14 +120,14 @@ const QuestionCard = React.memo(({ q, idx, groups, groupPointsMap, onPreview, on
         </button>
         <div className="flex gap-2">
           <button 
-            onClick={() => onEdit(q)} 
+            onClick={(e) => { console.log("Edit clicked for question:", q.id); e.stopPropagation(); onEdit(q); }} 
             className="w-12 h-12 flex items-center justify-center bg-white text-slate-600 rounded-2xl border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all active:scale-95 shadow-sm"
             title="Edit Soal"
           >
             <Edit3 className="w-4 h-4" />
           </button>
           <button 
-            onClick={() => onDelete(q.id)} 
+            onClick={(e) => { console.log("Delete clicked for question:", q.id); e.stopPropagation(); onDelete(q.id); }} 
             className="w-12 h-12 flex items-center justify-center bg-white text-red-500 rounded-2xl border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all active:scale-95 shadow-sm"
             title="Hapus Soal"
           >

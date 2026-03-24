@@ -14,7 +14,7 @@ const DB_FILE = path.join(__dirname, 'db.json');
 if (!fs.existsSync(DB_FILE)) {
   const initialData = {
     users: [
-      { id: '1', name: 'Administrator', role: 'ADMIN', username: 'admin', password: '123' },
+      { id: '1', name: 'Administrator', role: 'ADMIN', username: 'admin', password: 'kartiniraya06' },
       { id: '2', name: 'Tejo', role: 'STUDENT', username: 'tejo', password: '12345', kelas: '9A', nis: '12345' }
     ],
     questions: [],

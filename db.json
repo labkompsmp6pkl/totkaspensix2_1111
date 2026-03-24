@@ -1,0 +1,30 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "name": "Administrator",
+      "role": "ADMIN",
+      "username": "admin",
+      "password": "kartiniraya06"
+    },
+    {
+      "id": "2",
+      "name": "Tejo",
+      "role": "STUDENT",
+      "username": "tejo",
+      "password": "12345",
+      "kelas": "9A",
+      "nis": "12345"
+    }
+  ],
+  "questions": [],
+  "groups": [],
+  "scores": [],
+  "config": {
+    "exam_code": "TKA2026",
+    "active_group_id": null
+  },
+  "logs": [],
+  "progress": [],
+  "time_logs": []
+}
