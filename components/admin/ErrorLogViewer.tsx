@@ -1,171 +1,175 @@
-
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, AlertTriangle, Terminal, Trash2, Send } from 'lucide-react';
+import { AlertTriangle, Clock, Trash2, RefreshCw, Terminal, Search, Filter, ChevronRight, ChevronLeft } from 'lucide-react';
 import { API_BASE_URL } from '../../utils';
-import { logEventToRemote } from '../../utils/logger';
+
+interface ErrorLog {
+  id: number;
+  error_message: string;
+  stack_trace: string;
+  url: string;
+  user_id: string | null;
+  created_at: string;
+}
 
 const ErrorLogViewer: React.FC = () => {
-  const [logs, setLogs] = useState<string>('');
+  const [logs, setLogs] = useState<ErrorLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const fetchLogs = async () => {
     setIsLoading(true);
-    setError(null);
     try {
       const res = await fetch(`${API_BASE_URL}?action=get_error_logs`);
-      const data = await res.json();
-      if (data.success) {
-        setLogs(data.logs || 'Belum ada log error.');
-      } else {
-        setError(data.message || 'Gagal mengambil log.');
+      if (res.ok) {
+        const data = await res.json();
+        setLogs(Array.isArray(data) ? data : []);
       }
     } catch (err) {
-      setError('Gagal menghubungkan ke server.');
+      console.error("Gagal memuat log error:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleTestLog = async () => {
-    await logEventToRemote('MANUAL_TEST_LOG', { message: 'Ini adalah log tes manual dari Admin Dashboard' });
-    setSuccessMessage('Log tes berhasil dikirim! Silakan refresh untuk melihat.');
-    setTimeout(() => setSuccessMessage(null), 5000);
-    fetchLogs();
-  };
-
-  const handleClearLogs = async () => {
-    setShowClearConfirm(false);
-    setIsLoading(true);
+  const clearLogs = async () => {
+    if (!window.confirm("Hapus semua log error?")) return;
     try {
-      // We need a clear action in api.php/LogController
       const res = await fetch(`${API_BASE_URL}?action=clear_error_logs`);
-      const data = await res.json();
-      if (data.success) {
-        setLogs('Log berhasil dihapus.');
-        setSuccessMessage('Semua log berhasil dihapus.');
-        setTimeout(() => setSuccessMessage(null), 3000);
-      } else {
-        setError(data.message || 'Gagal menghapus log.');
-      }
-    } catch (err) {
-      setError('Gagal menghubungkan ke server.');
-    } finally {
-      setIsLoading(false);
-    }
+      if (res.ok) fetchLogs();
+    } catch (err) {}
   };
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
+  useEffect(() => { fetchLogs(); }, []);
+
+  const filteredLogs = logs.filter(log => 
+    log.error_message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    log.stack_trace.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="space-y-6 animate-in fade-up">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-red-600/10 text-red-600 rounded-2xl">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl font-black tracking-tighter text-slate-900 uppercase italic">REMOTE ERROR AUDIT</h2>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Log kesalahan sistem dari sisi klien (Frontend).</p>
-          </div>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      
+      {/* Header & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div>
+          <h4 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter">System Error Logs</h4>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Pantau pengecualian runtime dan kegagalan API.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleTestLog}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs uppercase hover:bg-indigo-100 transition-all active:scale-95"
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={fetchLogs}
+            className="p-3 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
+            title="Refresh"
           >
-            <Send className="w-4 h-4" />
-            Test Log
+            <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
-          <button
-            onClick={() => setShowClearConfirm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-bold text-xs uppercase hover:bg-red-100 transition-all active:scale-95"
+          <button 
+            onClick={clearLogs}
+            className="flex items-center gap-2 px-5 py-3 bg-red-50 text-red-600 border border-red-100 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-100 transition-all"
           >
             <Trash2 className="w-4 h-4" />
-            Clear
+            BERSIHKAN LOG
           </button>
-          <button
-            onClick={fetchLogs}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-xs uppercase hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50"
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+        <input 
+          type="text" 
+          placeholder="Cari pesan error atau stack trace..." 
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-[1.5rem] text-xs font-bold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-inner"
+        />
+      </div>
+
+      {/* Logs List */}
+      <div className="space-y-4">
+        {filteredLogs.length > 0 ? filteredLogs.map((log) => (
+          <div 
+            key={log.id} 
+            className={`
+              bg-white rounded-[2rem] border transition-all overflow-hidden
+              ${expandedId === log.id ? 'border-indigo-200 shadow-xl ring-4 ring-indigo-50' : 'border-slate-200 shadow-sm hover:border-slate-300'}
+            `}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {successMessage && (
-        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-600 text-sm font-bold animate-in slide-in-from-top duration-300">
-          <RefreshCw className="w-5 h-5" />
-          {successMessage}
-        </div>
-      )}
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-sm font-bold">
-          <AlertTriangle className="w-5 h-5" />
-          {error}
-        </div>
-      )}
-
-      <div className="bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-          <Terminal className="w-32 h-32 text-white" />
-        </div>
-        
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span className="ml-2 text-[10px] font-mono text-slate-500 uppercase tracking-widest">error_logs.txt</span>
-          </div>
-          
-          <pre className="font-mono text-[11px] text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[600px] no-scrollbar leading-relaxed">
-            {logs}
-          </pre>
-        </div>
-      </div>
-      
-      <div className="p-6 bg-indigo-600 rounded-3xl text-white shadow-xl shadow-indigo-200">
-        <h3 className="text-lg font-black italic uppercase tracking-tighter mb-2">Informasi Audit</h3>
-        <p className="text-indigo-100 text-xs leading-relaxed">
-          Log ini mencatat kesalahan yang terjadi di browser pengguna secara real-time. 
-          Gunakan data ini untuk mendiagnosa masalah tampilan atau fungsionalitas yang dilaporkan oleh siswa atau guru.
-        </p>
-      </div>
-
-      {/* Clear Confirmation Modal */}
-      {showClearConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
-              <Trash2 className="w-8 h-8" />
+            <div 
+              className="p-6 cursor-pointer flex items-start gap-5"
+              onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+            >
+              <div className={`p-3 rounded-xl shrink-0 ${expandedId === log.id ? 'bg-indigo-600 text-white' : 'bg-red-50 text-red-500'}`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-4 mb-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Clock className="w-3 h-3" />
+                    {new Date(log.created_at).toLocaleString('id-ID')}
+                  </span>
+                  <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                    ID: {log.id}
+                  </span>
+                </div>
+                <h5 className="text-sm font-black text-slate-800 leading-tight break-words">
+                  {log.error_message}
+                </h5>
+                <p className="text-[10px] font-mono text-indigo-500 mt-2 truncate">
+                  {log.url}
+                </p>
+              </div>
+              <div className={`p-2 text-slate-300 transition-transform duration-300 ${expandedId === log.id ? 'rotate-90 text-indigo-400' : ''}`}>
+                <ChevronRight className="w-5 h-5" />
+              </div>
             </div>
-            <h3 className="text-xl font-black text-slate-900 text-center mb-2 uppercase italic tracking-tighter">HAPUS SEMUA LOG?</h3>
-            <p className="text-slate-500 text-center text-sm mb-8 font-medium">Tindakan ini tidak dapat dibatalkan. Semua catatan kesalahan akan dihapus selamanya.</p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowClearConfirm(false)}
-                className="px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95"
-              >
-                BATAL
-              </button>
-              <button
-                onClick={handleClearLogs}
-                className="px-6 py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-200 transition-all active:scale-95"
-              >
-                YA, HAPUS
-              </button>
-            </div>
+
+            {expandedId === log.id && (
+              <div className="px-6 pb-8 animate-in slide-in-from-top-2 duration-300">
+                <div className="bg-slate-900 rounded-2xl p-6 overflow-x-auto border-t-4 border-indigo-500 shadow-inner">
+                  <div className="flex items-center gap-2 mb-4 text-indigo-400">
+                    <Terminal className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Stack Trace & Context</span>
+                  </div>
+                  <pre className="text-[11px] font-mono text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    {log.stack_trace || 'No stack trace available.'}
+                  </pre>
+                  
+                  <div className="mt-6 pt-6 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">User Context</p>
+                      <p className="text-xs font-bold text-white">{log.user_id ? `User ID: ${log.user_id}` : 'Anonymous / System'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Endpoint</p>
+                      <p className="text-xs font-bold text-white break-all">{log.url}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )) : (
+          <div className="py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+             <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <RefreshCw className="w-10 h-10" />
+             </div>
+             <h5 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter">Sistem Bersih</h5>
+             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Tidak ada log error yang perlu diperhatikan.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination Placeholder */}
+      <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total {logs.length} log tersimpan</p>
+         <div className="flex items-center gap-2">
+            <button className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"><ChevronLeft className="w-6 h-6" /></button>
+            <button className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"><ChevronRight className="w-6 h-6" /></button>
+         </div>
+      </div>
+
     </div>
   );
 };

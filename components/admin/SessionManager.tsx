@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { QuestionGroup, Question, User, UserRole } from '../../types';
-import { ensureArray, parseSafeDate } from '../../utils';
-import { ConfigController } from '../../controllers/ConfigController';
+import React, { useState, useMemo } from 'react';
+import { QuestionGroup, Question, User } from '../../types';
+import SessionForm from './session/SessionForm';
+import SessionList from './session/SessionList';
+import { Search, Filter, RefreshCw, Layers, Calendar, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { GroupController } from '../../controllers/GroupController';
-import SessionFilters from './sessions/SessionFilters';
-import SessionGrid from './sessions/SessionGrid';
-import SessionEditor from './sessions/SessionEditor';
-import DeleteSessionConfirmation from './sessions/DeleteSessionConfirmation';
 
 interface SessionManagerProps {
   groups: QuestionGroup[];
@@ -16,188 +13,165 @@ interface SessionManagerProps {
   activeGroupId: number | null;
   refreshData: () => void;
   API_BASE_URL: string;
+  currentUser: User;
   showForm: boolean;
   setShowForm: (show: boolean) => void;
   editingId: number | null;
   setEditingId: (id: number | null) => void;
-  form: Partial<QuestionGroup>;
-  setForm: React.Dispatch<React.SetStateAction<Partial<QuestionGroup>>>;
+  form: any;
+  setForm: (form: any) => void;
 }
 
 const SessionManager: React.FC<SessionManagerProps> = ({ 
-  groups, questions, users, examCode, activeGroupId, refreshData, API_BASE_URL,
+  groups, questions, users, examCode, activeGroupId, refreshData, API_BASE_URL, currentUser,
   showForm, setShowForm, editingId, setEditingId, form, setForm
 }) => {
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUpdatingConfig, setIsUpdatingConfig] = useState(false);
-  const [localExamCode, setLocalExamCode] = useState(examCode);
-  const [now, setNow] = useState(Date.now());
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'live' | 'draft'>('all');
 
-  const teacherList = users.filter(u => u.role === UserRole.TEACHER);
-  
-  const classOptions = React.useMemo(() => {
-    const classes = new Set<string>();
-    users.forEach(u => {
-      if (u.kelas && u.role === UserRole.STUDENT) {
-        classes.add(u.kelas.trim().toUpperCase());
-      }
+  const filteredGroups = useMemo(() => {
+    return groups.filter(g => {
+      const matchesSearch = g.group_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           g.group_code.toLowerCase().includes(searchTerm.toLowerCase());
+      const isLive = g.last_started_at !== null;
+      const matchesStatus = filterStatus === 'all' || (filterStatus === 'live' ? isLive : !isLive);
+      return matchesSearch && matchesStatus;
     });
-    const list = Array.from(classes).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    return list.length > 0 ? list : ['8U', '9A', '9B', '9C', '9D', '9E', '9F', '9G', '9Q', '9P'];
-  }, [users]);
+  }, [groups, searchTerm, filterStatus]);
 
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const initialForm: Partial<QuestionGroup> = {
-    group_name: '', group_code: '', duration_minutes: 60, extra_time_minutes: 0, is_shuffled: 1, target_classes: [], teacher_ids: []
+  const handleEdit = (g: QuestionGroup) => {
+    setForm({ ...g });
+    setEditingId(Number(g.id));
+    setShowForm(true);
   };
 
-  const cleanupTeacherAssignments = (currentSelectedClasses: string[]) => {
-    const currentTeachers = ensureArray(form.teacher_ids);
-    return currentTeachers.map(a => {
-      try {
-        const obj = JSON.parse(a);
-        const filteredClasses = ensureArray(obj.classes).filter(c => currentSelectedClasses.includes(c));
-        return JSON.stringify({ ...obj, classes: filteredClasses });
-      } catch(e) { return a; }
-    });
-  };
-
-  const getParsedTeachers = (rawIds: any[]) => {
-    return ensureArray(rawIds).map(raw => {
-      try {
-        const obj = JSON.parse(raw);
-        const user = users.find(u => String(u.id) === String(obj.id));
-        return { ...obj, name: user?.name || 'Unknown' };
-      } catch(e) {
-        const user = users.find(u => String(u.id) === String(raw));
-        return { id: raw, classes: [], name: user?.name || 'Unknown' };
-      }
-    });
-  };
-
-  const getTeacherAssignment = (teacherId: string) => {
-    const assignments = ensureArray(form.teacher_ids);
-    const found = assignments.find(a => {
-      try { return String(JSON.parse(a).id) === String(teacherId); }
-      catch(e) { return String(a) === String(teacherId); }
-    });
-    if (!found) return null;
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Hapus sesi ujian ini? Semua data nilai terkait mungkin akan terpengaruh.")) return;
     try {
-      const parsed = JSON.parse(found);
-      return { id: parsed.id, classes: ensureArray(parsed.classes) };
-    } catch(e) { return { id: found, classes: [] }; }
-  };
-
-  const toggleTeacherClass = (teacherId: string, className: string) => {
-    const currentAssignments = [...ensureArray(form.teacher_ids)];
-    const index = currentAssignments.findIndex(a => {
-      try { return String(JSON.parse(a).id) === String(teacherId); }
-      catch(e) { return String(a) === String(teacherId); }
-    });
-
-    if (index === -1) {
-      currentAssignments.push(JSON.stringify({ id: teacherId, classes: [className] }));
-    } else {
-      let data;
-      try { data = JSON.parse(currentAssignments[index]); }
-      catch(e) { data = { id: teacherId, classes: [] }; }
-      const classes = ensureArray(data.classes).map((c: string) => c.toUpperCase());
-      const target = className.toUpperCase();
-      data.classes = classes.includes(target) ? classes.filter((c: string) => c !== target) : [...classes, target];
-      currentAssignments[index] = JSON.stringify(data);
-    }
-    setForm({ ...form, teacher_ids: currentAssignments });
-  };
-
-  const toggleTeacherSelection = (teacherId: string) => {
-    const currentAssignments = ensureArray(form.teacher_ids);
-    const isAssigned = currentAssignments.some(a => {
-      try { return String(JSON.parse(a).id) === String(teacherId); }
-      catch(e) { return String(a) === String(teacherId); }
-    });
-    if (isAssigned) {
-      setForm({ ...form, teacher_ids: currentAssignments.filter(a => {
-        try { return String(JSON.parse(a).id) !== String(teacherId); }
-        catch(e) { return String(a) !== String(teacherId); }
-      })});
-    } else {
-      setForm({ ...form, teacher_ids: [...currentAssignments, JSON.stringify({ id: teacherId, classes: [] })] });
+      const res = await GroupController.delete(id);
+      if (res.success) refreshData();
+      else alert(res.message);
+    } catch (e) {
+      alert("Gagal menghapus sesi.");
     }
   };
 
-  const getRemainingTimeData = (g: QuestionGroup) => {
-    if (!g.last_started_at) return { text: "-", isExpired: false, start: null, end: null };
-    const startObj = parseSafeDate(g.last_started_at);
-    if (!startObj) return { text: "-", isExpired: false, start: null, end: null };
-    const start = startObj.getTime();
-    const totalMinutes = (Number(g.duration_minutes) || 0) + (Number(g.extra_time_minutes) || 0);
-    const end = start + (totalMinutes * 60 * 1000);
-    const rem = end - now;
-    const formatH = (d: number) => new Date(d).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    if (rem <= 0) return { text: "HABIS", isExpired: true, start: formatH(start), end: formatH(end) };
-    const h = Math.floor(rem / 3600000);
-    const m = Math.floor((rem % 3600000) / 60000);
-    const s = Math.floor((rem % 60000) / 1000);
-    let timeStr = "";
-    if (h > 0) timeStr += `${h}j `;
-    timeStr += `${m}m ${s}s`;
-    return { text: timeStr, isExpired: false, start: formatH(start), end: formatH(end) };
-  };
+  const handleToggleStatus = async (id: number) => {
+    const group = groups.find(g => Number(g.id) === id);
+    if (!group) return;
 
-  const handleToggleGroup = async (gid: number, currentStatus: boolean) => {
-    setIsUpdatingConfig(true);
+    const newStatus = group.last_started_at ? 'STOP' : 'START';
+    
     try {
-      const currentUser = JSON.parse(localStorage.getItem('tka_user') || '{}');
-      const res = await GroupController.toggleStatus({ group_id: gid, status: currentStatus ? 'STOP' : 'START', performer_id: currentUser.id });
-      if (!res.success) alert("Gagal mengubah status sesi: " + (res.message || "Terjadi kesalahan."));
-      refreshData();
-    } catch (e: any) { alert("Error: " + e.message); } finally { setIsUpdatingConfig(false); }
-  };
-
-  const handleSaveGroup = async () => {
-    if (!form.group_name || !form.group_code) return alert("Nama dan Kode Sesi wajib diisi!");
-    setIsSaving(true);
-    try {
-      const res = await GroupController.save({ ...form, id: editingId });
-      if (res.success) { setShowForm(false); refreshData(); } else alert("Gagal menyimpan: " + (res.message || "Terjadi kesalahan pada server."));
-    } finally { setIsSaving(false); }
-  };
-
-  const handleDelete = async () => {
-    if (!deleteConfirmId) return;
-    await GroupController.delete(deleteConfirmId);
-    setDeleteConfirmId(null); refreshData();
+      const res = await GroupController.toggleStatus({
+        group_id: id,
+        status: newStatus,
+        performer_id: Number(currentUser.id)
+      });
+      if (res.success) refreshData();
+      else alert(res.message);
+    } catch (e) {
+      alert("Gagal mengubah status sesi.");
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <SessionFilters 
-        examCode={examCode}
-        localExamCode={localExamCode}
-        setLocalExamCode={setLocalExamCode}
-        isUpdatingConfig={isUpdatingConfig}
-        onUpdateConfig={async () => { setIsUpdatingConfig(true); await ConfigController.update({ exam_code: localExamCode }); refreshData(); setIsUpdatingConfig(false); }}
-      />
-      <SessionGrid 
-        groups={groups}
+    <div className="space-y-10">
+      
+      {/* Header & Stats */}
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8">
+        <div>
+           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Manajemen Sesi Ujian</h2>
+           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Kelola jadwal, durasi, dan akses ujian siswa.</p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center gap-4">
+              <div className="p-2.5 bg-indigo-100 text-indigo-600 rounded-xl">
+                 <Layers className="w-5 h-5" />
+              </div>
+              <div>
+                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Sesi</p>
+                 <p className="text-lg font-black text-slate-800">{groups.length}</p>
+              </div>
+           </div>
+           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center gap-4">
+              <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl">
+                 <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Sesi Aktif</p>
+                 <p className="text-lg font-black text-slate-800">{groups.filter(g => g.last_started_at).length}</p>
+              </div>
+           </div>
+           <div className="hidden sm:flex bg-slate-50 p-4 rounded-2xl border border-slate-200 items-center gap-4">
+              <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl">
+                 <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Draft</p>
+                 <p className="text-lg font-black text-slate-800">{groups.filter(g => !g.last_started_at).length}</p>
+              </div>
+           </div>
+        </div>
+      </div>
+
+      {/* Filters & Search */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+          <input 
+            type="text" 
+            placeholder="Cari nama atau kode sesi..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-inner"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+           <select 
+             value={filterStatus}
+             onChange={(e) => setFilterStatus(e.target.value as any)}
+             className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all min-w-[140px]"
+           >
+             <option value="all">Semua Status</option>
+             <option value="live">Sedang Berlangsung</option>
+             <option value="draft">Draft / Selesai</option>
+           </select>
+           <button 
+            onClick={refreshData}
+            className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Session List */}
+      <SessionList 
+        groups={filteredGroups} 
+        onEdit={handleEdit} 
+        onDelete={handleDelete} 
+        onToggleStatus={handleToggleStatus} 
         questions={questions}
-        getRemainingTimeData={getRemainingTimeData}
-        getParsedTeachers={getParsedTeachers}
-        isUpdatingConfig={isUpdatingConfig}
-        onToggle={handleToggleGroup}
-        onEdit={(group) => { setEditingId(group.id); setForm({...group, target_classes: ensureArray(group.target_classes), teacher_ids: ensureArray(group.teacher_ids)}); setShowForm(true); }}
-        onDelete={setDeleteConfirmId}
       />
-      {showForm && <SessionEditor form={form} setForm={setForm} classOptions={classOptions} teacherList={teacherList} isSaving={isSaving} onSave={handleSaveGroup} onClose={() => setShowForm(false)} cleanupTeacherAssignments={cleanupTeacherAssignments} getTeacherAssignment={getTeacherAssignment} toggleTeacherSelection={toggleTeacherSelection} toggleTeacherClass={toggleTeacherClass} />}
-      {deleteConfirmId && <DeleteSessionConfirmation onCancel={() => setDeleteConfirmId(null)} onConfirm={handleDelete} />}
+
+      {/* Session Form Modal */}
+      {showForm && (
+        <SessionForm 
+          form={form} 
+          setForm={setForm} 
+          users={users} 
+          onClose={() => { setShowForm(false); setEditingId(null); }} 
+          onSuccess={() => { setShowForm(false); setEditingId(null); refreshData(); }}
+          editingId={editingId}
+          API_BASE_URL={API_BASE_URL}
+        />
+      )}
+
     </div>
   );
 };
-
 
 export default SessionManager;

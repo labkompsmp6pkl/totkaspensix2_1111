@@ -1,13 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Question, QuestionGroup, ScoringMode, User } from '../../types';
-import { ensureArray } from '../../utils';
+import React, { useState, useMemo } from 'react';
+import { Question, QuestionGroup, User } from '../../types';
+import QuestionForm from './question/QuestionForm';
+import QuestionList from './question/QuestionList';
+import { Search, Filter, PlusCircle, Trash2, RefreshCw, FileText, LayoutGrid, List } from 'lucide-react';
 import { QuestionController } from '../../controllers/QuestionController';
-import QuestionFilters from './questions/QuestionFilters';
-import QuestionGrid from './questions/QuestionGrid';
-import SearchAndAddBar from './SearchAndAddBar';
-import QuestionPreview from './questions/QuestionPreview';
-import QuestionEditor from './questions/QuestionEditor';
-import DeleteConfirmation from './questions/DeleteConfirmation';
 
 interface QuestionManagerProps {
   questions: Question[];
@@ -21,239 +17,145 @@ interface QuestionManagerProps {
   editingId: string | number | null;
   setEditingId: (id: string | number | null) => void;
   form: Partial<Question>;
-  setForm: React.Dispatch<React.SetStateAction<Partial<Question>>>;
-  // initialForm tidak lagi digunakan dari props untuk mencegah mutasi state induk
-  initialForm?: Partial<Question>; 
+  setForm: (form: Partial<Question>) => void;
+  initialForm: Partial<Question>;
 }
 
 const QuestionManager: React.FC<QuestionManagerProps> = ({ 
   questions, groups, refreshData, API_BASE_URL, activeGroupId, currentUser,
-  showForm, setShowForm, editingId, setEditingId, form, setForm
+  showForm, setShowForm, editingId, setEditingId, form, setForm, initialForm
 }) => {
-  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [filterSubject, setFilterSubject] = useState('ALL');
-  const [sortType, setSortType] = useState<'ID' | 'ORDER'>('ID');
-  
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12; 
-  
-  const scrollToTop = () => {
-    const mainContainer = document.getElementById('main-scroll-container');
-    if (mainContainer) {
-      mainContainer.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [filterGroup, setFilterGroup] = useState<number | 'all'>(activeGroupId || 'all');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  const filteredQuestions = useMemo(() => {
+    return questions.filter(q => {
+      const matchesSearch = q.text.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = filterType === 'all' || q.type === filterType;
+      const matchesGroup = filterGroup === 'all' || (q.group_ids || []).map(Number).includes(Number(filterGroup));
+      return matchesSearch && matchesType && matchesGroup;
+    });
+  }, [questions, searchTerm, filterType, filterGroup]);
+
+  const handleEdit = (q: Question) => {
+    setForm({ ...q });
+    setEditingId(q.id);
+    setShowForm(true);
   };
 
-  const subjects = ['Bahasa Indonesia', 'Matematika', 'IPA', 'IPS', 'Bahasa Inggris', 'Informatika', 'TKA Umum'];
-
-  // PERBAIKAN: Blueprint Form Baru yang 100% independen
-  const createNewQuestionForm = (): Partial<Question> => ({
-    subject: subjects[0], 
-    group_ids: activeGroupId ? [activeGroupId] : [], 
-    text: '', 
-    type: 'single', 
-    scoring_mode: 'all_or_nothing', 
-    points: 10, 
-    sort_order: 1, 
-    options: [
-      { id: 'a', text: '', points: 0 }, 
-      { id: 'b', text: '', points: 0 }, 
-      { id: 'c', text: '', points: 0 }, 
-      { id: 'd', text: '', points: 0 }
-    ],
-    correctOptionId: 'a', 
-    correctOptionIds: [], 
-    tableOptions: ['BENAR', 'SALAH'],
-    statements: []
-  });
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Hapus soal ini?")) return;
+    try {
+      const res = await QuestionController.delete(id);
+      if (res.success) refreshData();
+      else alert(res.message);
+    } catch (e) {
+      alert("Gagal menghapus soal.");
+    }
+  };
 
   const groupPointsMap = useMemo(() => {
     const map: Record<number, number> = {};
     groups.forEach(g => {
-      const qInGroup = questions.filter(q => ensureArray(q.group_ids).map(Number).includes(Number(g.id)));
-      map[g.id] = qInGroup.reduce((acc, q) => acc + (Number(q.points) || 0), 0);
+      map[Number(g.id)] = questions
+        .filter(q => (q.group_ids || []).map(Number).includes(Number(g.id)))
+        .reduce((sum, q) => sum + (Number(q.points) || 0), 0);
     });
     return map;
-  }, [groups, questions]);
+  }, [questions, groups]);
 
-  const handleEdit = React.useCallback((q: any) => {
-    console.log("Editing question:", q.id);
-    setEditingId(q.id);
-    // Pastikan copy form bersih
-    setForm({ 
-      ...q, 
-      group_ids: ensureArray(q.group_ids).map(Number), 
-      scoring_mode: q.scoring_mode || 'all_or_nothing', 
-      points: Number(q.points) || 0, 
-      tableOptions: q.tableOptions?.length > 0 ? q.tableOptions : ['BENAR', 'SALAH'] 
-    });
-    setShowForm(true);
-  }, [setEditingId, setForm, setShowForm]);
-
-  const handleModeChange = React.useCallback((newMode: ScoringMode) => {
-    setForm((prev: Partial<Question>) => {
-      if (newMode === 'all_or_nothing') return { ...prev, scoring_mode: 'all_or_nothing' };
-      const updatedOptions = ensureArray(prev.options).map(opt => ({ 
-        ...opt, 
-        points: (prev.type === 'single' ? opt.id === prev.correctOptionId : ensureArray(prev.correctOptionIds).includes(opt.id)) ? (prev.points || 10) : 0 
-      }));
-      return { ...prev, scoring_mode: 'partial', options: updatedOptions };
-    });
-  }, [setForm]);
-
-  const autoCalculatedPoints = useMemo(() => {
-    if (form.scoring_mode === 'all_or_nothing') return form.points || 0;
-    if (form.type === 'single') return Math.max(...(ensureArray(form.options).map(o => Number(o.points) || 0) || [0]));
-    if (form.type === 'multiple') return (ensureArray(form.options).reduce((acc, o) => acc + (Number(o.points) || 0), 0) || 0);
-    if (form.type === 'table') return (ensureArray(form.statements).reduce((acc, s) => acc + (Number(s.points) || 0), 0) || 0);
-    return 0;
-  }, [form.scoring_mode, form.type, form.options, form.statements, form.points]);
-
-  const handleSave = React.useCallback(async () => {
-    setIsSaving(true);
-    await QuestionController.save({ 
-      ...form, 
-      id: editingId, 
-      points: form.scoring_mode === 'all_or_nothing' ? form.points : autoCalculatedPoints, 
-      created_by: currentUser.id 
-    });
-    setShowForm(false); 
-    refreshData(); 
-    setIsSaving(false);
-  }, [form, editingId, autoCalculatedPoints, currentUser.id, setShowForm, refreshData]);
-
-  const handleClose = React.useCallback(() => {
-    setShowForm(false);
-  }, [setShowForm]);
-
-  const filteredAndSortedQuestions = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-    
-    let result = questions.filter(q => {
-      const textMatch = (q.text || "").toLowerCase().includes(query);
-      const subjectMatch = (q.subject || "").toLowerCase().includes(query);
-      const orderMatch = q.sort_order ? String(q.sort_order).includes(query) : false;
-      const idMatch = q.id ? String(q.id).includes(query) : false;
-
-      return (textMatch || subjectMatch || orderMatch || idMatch) && (filterSubject === 'ALL' || q.subject === filterSubject);
-    });
-
-    if (sortType === 'ID') result.sort((a, b) => Number(b.id) - Number(a.id));
-    else result.sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0));
-    return result;
-  }, [questions, searchQuery, filterSubject, sortType]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterSubject, sortType]);
-
-  const totalPages = Math.ceil(filteredAndSortedQuestions.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedQuestions = filteredAndSortedQuestions.slice(startIndex, startIndex + itemsPerPage);
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
 
   return (
-    <div className="w-full space-y-8 flex flex-col pt-10 sm:pt-14 scroll-mt-24">
+    <div className="space-y-8">
       
-      <SearchAndAddBar 
-        onSearch={(q) => setSearchQuery(q)} 
-        onAdd={() => { 
-          // PERBAIKAN: Gunakan fungsi createNewQuestionForm() lokal
-          // Ini menjamin form yang dirender 100% bebas dari koneksi memori luar
-          setForm(createNewQuestionForm()); 
-          setEditingId(null); 
-          setShowForm(true); 
-        }}
-      />
-      
-      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shrink-0">
-        <QuestionFilters 
-          filterSubject={filterSubject}
-          setFilterSubject={setFilterSubject}
-          sortType={sortType}
-          setSortType={setSortType}
-          subjects={subjects}
+      {/* Controls & Filters */}
+      <div className="flex flex-col xl:flex-row gap-6">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+          <input 
+            type="text" 
+            placeholder="Cari butir soal..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-inner"
+          />
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+             <button 
+               onClick={() => setViewMode('list')}
+               className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+             >
+               <List className="w-4 h-4" />
+             </button>
+             <button 
+               onClick={() => setViewMode('grid')}
+               className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+             >
+               <LayoutGrid className="w-4 h-4" />
+             </button>
+          </div>
+
+          <select 
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all min-w-[140px]"
+          >
+            <option value="all">Semua Tipe</option>
+            <option value="single">Pilihan Ganda</option>
+            <option value="multiple">PG Kompleks</option>
+            <option value="table">Tabel B/S</option>
+          </select>
+
+          <select 
+            value={filterGroup}
+            onChange={(e) => setFilterGroup(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+            className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-indigo-600 focus:bg-white transition-all min-w-[160px]"
+          >
+            <option value="all">Semua Sesi</option>
+            {groups.map(g => <option key={g.id} value={g.id}>{g.group_name}</option>)}
+          </select>
+
+          <button 
+            onClick={refreshData}
+            className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="relative">
+        <QuestionList 
+          questions={filteredQuestions} 
+          groups={groups} 
+          onEdit={handleEdit} 
+          onDelete={handleDelete} 
+          viewMode={viewMode}
+          groupPointsMap={groupPointsMap}
+          onPreview={(q) => setPreviewQuestion(q)}
         />
       </div>
 
-      <div className="space-y-4 flex-1">
-        <div className="flex justify-between items-center px-2">
-           <div>
-              <h3 className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic leading-none">Katalog Bank Soal</h3>
-              <p className="text-[9px] font-bold text-indigo-500 uppercase mt-1">Total: {filteredAndSortedQuestions.length} Butir Soal</p>
-           </div>
-        </div>
-
-        <div className="pt-2 pb-6">
-          <QuestionGrid 
-            questions={paginatedQuestions}
-            groups={groups}
-            groupPointsMap={groupPointsMap}
-            onPreview={setPreviewQuestion}
-            onEdit={handleEdit}
-            onDelete={(id) => { console.log("Deleting question:", id); setDeleteConfirmId(id); }}
-          />
-
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-3 mt-8 pt-6 border-t border-slate-100">
-              <button 
-                onClick={() => {
-                  setCurrentPage(prev => Math.max(1, prev - 1));
-                  scrollToTop();
-                }}
-                disabled={currentPage === 1}
-                className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2"
-              >
-                <span>&larr;</span> Sebelumnya
-              </button>
-              
-              <div className="px-4 py-2 bg-indigo-50/50 rounded-xl text-xs font-bold text-indigo-600 border border-indigo-100/50 shadow-sm">
-                Halaman {currentPage} dari {totalPages}
-              </div>
-              
-              <button 
-                onClick={() => {
-                  setCurrentPage(prev => Math.min(totalPages, prev + 1));
-                  scrollToTop();
-                }}
-                disabled={currentPage === totalPages}
-                className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2"
-              >
-                Selanjutnya <span>&rarr;</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {previewQuestion && <QuestionPreview question={previewQuestion} onClose={() => setPreviewQuestion(null)} />}
+      {/* Question Form Modal */}
       {showForm && (
-        <QuestionEditor 
+        <QuestionForm 
           form={form} 
           setForm={setForm} 
           groups={groups} 
-          subjects={subjects} 
-          autoCalculatedPoints={autoCalculatedPoints} 
-          isSaving={isSaving} 
-          onSave={handleSave} 
-          onClose={handleClose} 
-          handleModeChange={handleModeChange} 
+          onClose={() => { setShowForm(false); setEditingId(null); setForm(initialForm); }} 
+          onSuccess={() => { setShowForm(false); setEditingId(null); setForm(initialForm); refreshData(); }}
+          editingId={editingId}
+          API_BASE_URL={API_BASE_URL}
+          currentUser={currentUser}
         />
       )}
-      {deleteConfirmId !== null && <DeleteConfirmation onCancel={() => setDeleteConfirmId(null)} onConfirm={async () => {
-          try { 
-            await QuestionController.delete(deleteConfirmId); 
-            setDeleteConfirmId(null); 
-            refreshData(); 
-          } catch (error) { 
-            console.error("Gagal menghapus soal:", error); 
-            setDeleteConfirmId(null); 
-          }
-      }} />}
+
     </div>
   );
 };

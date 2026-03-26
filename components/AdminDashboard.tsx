@@ -301,6 +301,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   showForm={showSessionForm} setShowForm={setShowSessionForm} 
                   editingId={editingSessionId} setEditingId={setEditingSessionId} 
                   form={sessionForm} setForm={setSessionForm} 
+                  currentUser={currentUser}
                 />
               </div>
             )}
@@ -312,6 +313,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   API_BASE_URL={API_BASE_URL} accessLogs={accessLogs} 
                   sessionLogs={sessionLogs} scores={[]} 
                   userForm={userForm} setUserForm={setUserForm} 
+                  currentUser={currentUser}
                 />
               </div>
             )}

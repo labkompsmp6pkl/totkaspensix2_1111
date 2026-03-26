@@ -5,8 +5,9 @@ import Login from './components/Login';
 import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
 import TeacherDashboard from './components/TeacherDashboard';
-import StudentDashboard from './components/student/StudentDashboard';
+import StudentDashboard from './components/StudentDashboard';
 import ExamRoom from './components/ExamRoom';
+import SystemStatus from './components/SystemStatus';
 import { ConfigController } from './controllers/ConfigController';
 import { QuestionController } from './controllers/QuestionController';
 import { GroupController } from './controllers/GroupController';
@@ -29,9 +30,12 @@ const App: React.FC = () => {
   const [scores, setScores] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [lastSync, setLastSync] = useState<Date>(new Date());
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isStartingExam, setIsStartingExam] = useState(false);
 
   const refreshData = useCallback(async () => {
+    setIsSyncing(true);
     try {
       const [configData, qData, gData, sData, uData] = await Promise.all([
         ConfigController.get(),
@@ -65,8 +69,10 @@ const App: React.FC = () => {
       }
     } catch (err) {
       console.error("Sync error:", err);
+    } finally {
+      setIsSyncing(false);
     }
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('tka_user');
@@ -79,6 +85,17 @@ const App: React.FC = () => {
       }
     }
   }, []); // Run only once on mount
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     refreshData();
@@ -158,12 +175,16 @@ const App: React.FC = () => {
          sessionQuestions = [...sessionQuestions].sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0));
       }
 
+      const startTime = targetGroup.last_started_at 
+        ? new Date(targetGroup.last_started_at.replace(/-/g, '/')).getTime() 
+        : Date.now();
+
       const newSession: ExamSession = {
         id: Date.now().toString(),
         studentId: currentUser.id,
         groupId: groupId,
         group_name: targetGroup.group_name,
-        startTime: Date.now(),
+        startTime: startTime,
         answers: existingAnswers,
         uncertainAnswers: existingUncertain,
         shuffledQuestions: sessionQuestions
@@ -273,6 +294,7 @@ const App: React.FC = () => {
             setActiveTab={setActiveTab}
           />
         )}
+        <SystemStatus isOnline={isOnline} isSyncing={isSyncing} lastSync={lastSync} />
       </div>
     </MathJaxContext>
   );

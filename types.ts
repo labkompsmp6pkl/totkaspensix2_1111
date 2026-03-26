@@ -1,8 +1,8 @@
 
 export enum UserRole {
   ADMIN = 'ADMIN',
-  TEACHER = 'GURU',
-  STUDENT = 'SISWA'
+  TEACHER = 'TEACHER',
+  STUDENT = 'STUDENT'
 }
 
 export interface User {
@@ -86,4 +86,17 @@ export interface ExamSession {
   answers: Record<string, any>; 
   uncertainAnswers: string[]; 
   shuffledQuestions?: Question[];
+}
+
+export interface Score {
+  id: string;
+  studentId: string;
+  groupId: number;
+  group_name: string;
+  score: number;
+  answers_json: string;
+  uncertain_json: string;
+  durationMs: number;
+  createdAt: string;
+  status: 'active' | 'reset';
 }

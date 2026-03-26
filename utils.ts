@@ -1,5 +1,5 @@
-// Paksa menggunakan domain .org agar data selalu sinkron dengan server utama
-export const API_BASE_URL = "https://totka.smpn6pekalongan.org/api.php";
+// Paksa menggunakan domain lokal agar data selalu sinkron dengan server Node.js
+export const API_BASE_URL = "/api.php";
 
 /**
  * Robust Date Parsing

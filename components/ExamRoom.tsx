@@ -1,8 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ExamSession, Question, User, QuestionGroup } from '../types';
 import QuestionView from './exam/QuestionView';
 import QuestionPalette from './exam/QuestionPalette';
+import ExamHeader from './exam/ExamHeader';
+import ExamFooter from './exam/ExamFooter';
+import ConfirmSubmitModal from './exam/ConfirmSubmitModal';
 import { ProgressController } from '../controllers/ProgressController';
 import { ScoreController } from '../controllers/ScoreController';
 import { parseSafeDate, ensureArray, ensureObject, API_BASE_URL } from '../utils';
@@ -33,6 +35,7 @@ const ExamRoom: React.FC<ExamRoomProps> = ({
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
   
   // Ref untuk mencatat kapan siswa mulai melihat soal yang sedang aktif
   const questionStartTimeRef = useRef<number>(Date.now());
@@ -83,22 +86,23 @@ const ExamRoom: React.FC<ExamRoomProps> = ({
         correct = sel === ans && sel !== "";
       } else if (q.type === 'table') {
         const ansObj = ensureObject(answer);
-        correct = q.statements?.every(s => String(ansObj[s.id] || '').toUpperCase() === String(s.correctAnswer).toUpperCase()) || false;
+        const statements = ensureArray(q.statements);
+        correct = statements.every(s => String(ansObj[s.id] || '').toUpperCase() === String(s.correctAnswer).toUpperCase());
       }
       return correct ? Number(q.points) : 0;
     } else {
       let earned = 0;
       if (q.type === 'single') {
-        earned = q.options?.find(o => String(o.id) === String(answer))?.points || 0;
+        earned = ensureArray(q.options).find(o => String(o.id) === String(answer))?.points || 0;
       } else if (q.type === 'multiple') {
         ensureArray(answer).forEach(id => {
-          earned += (q.options?.find(o => String(o.id) === String(id))?.points || 0);
+          earned += (ensureArray(q.options).find(o => String(o.id) === String(id))?.points || 0);
         });
       } else if (q.type === 'table') {
         const ansObj = ensureObject(answer);
-        q.statements?.forEach(s => {
+        ensureArray(q.statements).forEach(s => {
           if (String(ansObj[s.id] || '').toUpperCase() === String(s.correctAnswer).toUpperCase()) {
-            earned += Number(s.points);
+            earned += Number(s.points) || 0;
           }
         });
       }
@@ -107,6 +111,7 @@ const ExamRoom: React.FC<ExamRoomProps> = ({
   };
 
   const toggleUncertain = (qId: string) => {
+    if (!qId) return;
     const cur = ensureArray(activeSession.uncertainAnswers);
     const next = cur.includes(qId.toString()) 
       ? cur.filter(id => id !== qId.toString()) 
@@ -125,9 +130,20 @@ const ExamRoom: React.FC<ExamRoomProps> = ({
     const durationSeconds = Math.floor((now - questionStartTimeRef.current) / 1000);
     const answer = activeSession.answers[q.id];
     const earned = calculatePoints(q, answer);
+    const isUncertain = ensureArray(activeSession.uncertainAnswers).includes(q.id.toString());
 
     // Kirim data ke API menggunakan ProgressController
     try {
+      // 1. Simpan progres jawaban (Auto-save utama)
+      await ProgressController.save({
+        user_id: currentUser.id,
+        group_id: activeSession.groupId,
+        question_id: q.id,
+        answer_data: answer,
+        is_uncertain: isUncertain ? 1 : 0
+      });
+
+      // 2. Simpan log waktu (Tracking analitik)
       await ProgressController.saveTimeLog({
         user_id: currentUser.id,
         group_id: activeSession.groupId,
@@ -135,10 +151,10 @@ const ExamRoom: React.FC<ExamRoomProps> = ({
         duration_seconds: durationSeconds,
         is_correct: earned >= Number(q.points) ? 1 : 0,
         answer_data: answer,
-        uncertain_json: activeSession.uncertainAnswers // Tambahkan data ragu-ragu ke log progres
+        uncertain_json: activeSession.uncertainAnswers
       });
     } catch (err) {
-      console.warn("Gagal menyimpan log waktu pengerjaan soal.");
+      console.warn("Gagal menyimpan progres pengerjaan soal.");
     }
 
     // Reset timer untuk soal berikutnya
@@ -210,26 +226,74 @@ const ExamRoom: React.FC<ExamRoomProps> = ({
     });
   };
 
+  // Auto-save progress whenever answers or uncertain status change
+  useEffect(() => {
+    const saveProgress = async () => {
+      if (!currentQ) return;
+      setIsAutoSaving(true);
+      
+      const answer = activeSession.answers[currentQ.id];
+      const isUncertain = ensureArray(activeSession.uncertainAnswers).includes(currentQ.id.toString());
+      const now = Date.now();
+      const durationSeconds = Math.floor((now - questionStartTimeRef.current) / 1000);
+      const earned = calculatePoints(currentQ, answer);
+
+      try {
+        // 1. Simpan progres jawaban (Auto-save utama)
+        await ProgressController.save({
+          user_id: currentUser.id,
+          group_id: activeSession.groupId,
+          question_id: currentQ.id,
+          answer_data: answer,
+          is_uncertain: isUncertain ? 1 : 0
+        });
+
+        // 2. Simpan log waktu (Tracking analitik)
+        await ProgressController.saveTimeLog({
+          user_id: currentUser.id,
+          group_id: activeSession.groupId,
+          question_id: currentQ.id,
+          duration_seconds: durationSeconds,
+          is_correct: earned >= Number(currentQ.points) ? 1 : 0,
+          answer_data: answer,
+          uncertain_json: activeSession.uncertainAnswers
+        });
+      } catch (err) {
+        console.warn("Auto-save failed.");
+      } finally {
+        setTimeout(() => setIsAutoSaving(false), 1000);
+      }
+    };
+
+    // Debounce save to avoid too many requests
+    const timeout = setTimeout(saveProgress, 2000);
+    return () => clearTimeout(timeout);
+  }, [activeSession.answers, activeSession.uncertainAnswers, currentQ?.id]);
+
   const formatTime = (s: number) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 
-  const answeredCount = Object.keys(activeSession.answers).filter(id => {
+  const answeredCount = Object.keys(activeSession?.answers || {}).filter(id => {
     const ans = activeSession.answers[id];
+    if (ans === null || ans === undefined) return false;
     if (Array.isArray(ans)) return ans.length > 0;
     if (typeof ans === 'object') return Object.keys(ans).length > 0;
-    return ans !== null && ans !== undefined && ans.toString().trim() !== "";
+    return ans.toString().trim() !== "";
   }).length;
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
-      <header className="bg-white px-6 py-3 border-b flex justify-between items-center shadow-sm z-10">
-         <div className="flex items-center gap-4">
-            <div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center text-white text-xs font-black shadow-sm">6</div>
-            <h1 className="font-black text-blue-900 uppercase text-[10px] tracking-widest">{activeSession.group_name}</h1>
-         </div>
-         <div className={`px-5 py-1.5 rounded-full border-2 font-mono font-bold text-sm ${timeLeft < 300 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' : 'bg-slate-50 border-slate-100 text-blue-900'}`}>
-            {formatTime(timeLeft)}
-         </div>
-      </header>
+      <ExamHeader 
+        groupName={activeSession.group_name || 'Ujian'}
+        userName={currentUser.name || 'Siswa'}
+        userKelas={currentUser.kelas || '-'}
+        isAutoSaving={isAutoSaving}
+        timeLeft={timeLeft}
+        onLogout={() => {
+          if (window.confirm('Keluar dari ujian? Progress akan tersimpan.')) {
+            setActiveSession(null);
+          }
+        }}
+      />
       <div className="flex-1 flex overflow-hidden">
          <div className="flex-1 flex flex-col bg-white m-4 rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100">
             <div className="flex-1 overflow-y-auto p-6 sm:p-10 custom-scrollbar">
@@ -247,106 +311,34 @@ const ExamRoom: React.FC<ExamRoomProps> = ({
                     setActiveSession(p => ({...p!, answers: {...p!.answers, [qId]: next}}));
                   }}
                   onToggleUncertain={toggleUncertain}
-                  isUncertain={ensureArray(activeSession.uncertainAnswers).includes(currentQ.id.toString())}
+                  isUncertain={currentQ ? ensureArray(activeSession.uncertainAnswers).includes(currentQ.id.toString()) : false}
                />
             </div>
-            <div className="p-6 border-t flex flex-wrap justify-between items-center bg-slate-50/50 gap-4">
-               <div className="flex gap-2">
-                  <button disabled={currentIndex === 0} onClick={() => handleNavigate(currentIndex - 1)} className="px-6 sm:px-8 py-4 bg-white border-2 rounded-2xl font-black text-[10px] uppercase text-slate-400 hover:border-blue-900 hover:text-blue-900 transition-all disabled:opacity-30">Kembali</button>
-                  
-                  {/* TOMBOL RAGU-RAGU (Pindah ke Navigasi Utama) */}
-                  <button 
-                    type="button"
-                    onClick={() => toggleUncertain(currentQ.id)}
-                    className={`flex items-center gap-2 px-6 sm:px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 border-2 ${
-                      ensureArray(activeSession.uncertainAnswers).includes(currentQ.id.toString())
-                        ? 'bg-amber-400 border-amber-500 text-amber-950 shadow-lg shadow-amber-100' 
-                        : 'bg-white border-slate-100 text-slate-400 hover:border-amber-200 hover:text-amber-500'
-                    }`}
-                  >
-                    <span className="text-lg">{ensureArray(activeSession.uncertainAnswers).includes(currentQ.id.toString()) ? '🚩' : '🏳️'}</span>
-                    <span className="hidden sm:inline">{ensureArray(activeSession.uncertainAnswers).includes(currentQ.id.toString()) ? 'Hapus Ragu' : 'Ragu-Ragu'}</span>
-                  </button>
-               </div>
-
-               <div className="hidden md:flex items-center gap-2">
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Soal Ke</span>
-                  <span className="text-sm font-black text-blue-900 italic">{currentIndex + 1} / {questions.length}</span>
-               </div>
-
-               {currentIndex === questions.length - 1 ? (
-                 <button onClick={handleFinish} disabled={isSubmitting} className="px-10 sm:px-12 py-4 bg-blue-900 text-white rounded-2xl font-black text-[11px] uppercase shadow-xl border-b-8 border-blue-950 active:scale-95 transition-all">
-                    {isSubmitting ? 'MENYIMPAN...' : 'SELESAI & SUBMIT 🏁'}
-                 </button>
-               ) : (
-                 <button onClick={() => handleNavigate(currentIndex + 1)} className="px-8 sm:px-10 py-4 bg-blue-900 text-white rounded-2xl font-black text-[11px] uppercase shadow-xl border-b-8 border-blue-950 active:scale-95 transition-all flex items-center gap-2">
-                    SOAL BERIKUTNYA ➔
-                 </button>
-               )}
-            </div>
+            <ExamFooter 
+              currentIndex={currentIndex}
+              totalQuestions={questions.length}
+              onNavigate={handleNavigate}
+              onToggleUncertain={toggleUncertain}
+              onFinish={handleFinish}
+              isUncertain={currentQ ? ensureArray(activeSession.uncertainAnswers).includes(currentQ.id.toString()) : false}
+              isSubmitting={isSubmitting}
+              currentQuestionId={currentQ?.id?.toString() || ''}
+            />
          </div>
          <div className="w-80 p-4 hidden xl:block overflow-y-auto custom-scrollbar">
             <QuestionPalette questions={questions} activeSession={activeSession} currentIndex={currentIndex} onNavigate={handleNavigate} />
          </div>
       </div>
 
-      {/* MODAL KONFIRMASI SUBMIT (BUG #3 FIX) */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border-4 border-white">
-            <div className="bg-blue-900 p-8 text-center relative overflow-hidden">
-               <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-                  <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle,white_1px,transparent_1px)] [background-size:20px_20px] rotate-12"></div>
-               </div>
-               <div className="relative z-10">
-                  <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/30">
-                    <span className="text-4xl">🚀</span>
-                  </div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight">Konfirmasi Selesai</h3>
-                  <p className="text-blue-100 text-xs font-medium mt-1">Apakah Anda yakin ingin mengakhiri ujian ini?</p>
-               </div>
-            </div>
-
-            <div className="p-8 space-y-6">
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Terjawab</div>
-                     <div className="text-2xl font-black text-blue-900">{answeredCount} <span className="text-xs text-slate-400">/ {questions.length}</span></div>
-                  </div>
-                  <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-center">
-                     <div className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Ragu-Ragu</div>
-                     <div className="text-2xl font-black text-amber-600">{ensureArray(activeSession.uncertainAnswers).length}</div>
-                  </div>
-               </div>
-
-               {answeredCount < questions.length && (
-                 <div className="bg-red-50 p-4 rounded-2xl border border-red-100 flex items-center gap-3">
-                    <span className="text-xl">⚠️</span>
-                    <p className="text-[10px] font-bold text-red-600 leading-tight">
-                      Masih ada <span className="underline">{questions.length - answeredCount} soal</span> yang belum Anda jawab.
-                    </p>
-                 </div>
-               )}
-
-               <div className="flex flex-col gap-3">
-                  <button 
-                    onClick={submitExam}
-                    disabled={isSubmitting}
-                    className="w-full py-4 bg-blue-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-100 border-2 border-blue-800 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'MENYIMPAN HASIL...' : 'YA, SAYA YAKIN SELESAI'}
-                  </button>
-                  <button 
-                    onClick={() => setShowConfirmModal(false)}
-                    disabled={isSubmitting}
-                    className="w-full py-4 bg-white text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest border-2 border-slate-100 transition-all active:scale-95"
-                  >
-                    KEMBALI KE SOAL
-                  </button>
-               </div>
-            </div>
-          </div>
-        </div>
+        <ConfirmSubmitModal 
+          answeredCount={answeredCount}
+          totalQuestions={questions.length}
+          uncertainCount={ensureArray(activeSession.uncertainAnswers).length}
+          isSubmitting={isSubmitting}
+          onSubmit={submitExam}
+          onCancel={() => setShowConfirmModal(false)}
+        />
       )}
     </div>
   );
